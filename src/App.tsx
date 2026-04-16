@@ -1,4 +1,5 @@
 import Box from '@mui/material/Box'
+import CssBaseline from '@mui/material/CssBaseline'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { ToastProvider } from '@/contexts/ToastContext'
@@ -19,6 +20,7 @@ function App() {
     <BrowserRouter basename={routerBasename}>
       <AuthProvider>
         <ToastProvider>
+          <CssBaseline />
           <Box sx={{ minHeight: '100vh' }}>
             <Routes>
               <Route path="/" element={<HomePage />} />

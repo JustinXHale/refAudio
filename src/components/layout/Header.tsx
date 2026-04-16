@@ -2,6 +2,8 @@ import AppBar from '@mui/material/AppBar'
 import Toolbar from '@mui/material/Toolbar'
 import Typography from '@mui/material/Typography'
 import IconButton from '@mui/material/IconButton'
+import Box from '@mui/material/Box'
+import Stack from '@mui/material/Stack'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import { useNavigate } from 'react-router-dom'
 
@@ -43,7 +45,7 @@ export function Header({
           px: 2,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
+        <Stack direction="row" alignItems="center" spacing={1} sx={{ flex: 1, minWidth: 0 }}>
           {showBack && (
             <IconButton
               edge="start"
@@ -72,8 +74,8 @@ export function Header({
           >
             {title}
           </Typography>
-        </div>
-        {rightAction ? <div>{rightAction}</div> : null}
+        </Stack>
+        {rightAction ? <Box>{rightAction}</Box> : null}
       </Toolbar>
     </AppBar>
   )

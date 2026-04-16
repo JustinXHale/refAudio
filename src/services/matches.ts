@@ -47,6 +47,15 @@ export interface CreateMatchInput {
   creatorId: string
 }
 
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error(`${label} timed out after ${ms / 1000}s — check Firestore rules`)), ms),
+    ),
+  ])
+}
+
 export async function createMatch(input: CreateMatchInput): Promise<string> {
   const matchData: Record<string, unknown> = {
     title: input.title,
@@ -77,11 +86,12 @@ export async function createMatch(input: CreateMatchInput): Promise<string> {
   }
 
   const ref = collection(requireDb(), 'matches')
-  const docRef = await addDoc(ref, matchData)
-  await updateDoc(docRef, {
-    roomId: docRef.id,
-    roomName: `match-${docRef.id}`,
-  })
+  const docRef = await withTimeout(addDoc(ref, matchData), 10000, 'createMatch:addDoc')
+  await withTimeout(
+    updateDoc(docRef, { roomId: docRef.id, roomName: `match-${docRef.id}` }),
+    10000,
+    'createMatch:updateDoc',
+  )
   return docRef.id
 }
 
@@ -133,7 +143,7 @@ export function subscribeToUpcomingMatches(
 }
 
 export async function startMatch(matchId: string, userId: string) {
-  const match = await getMatch(matchId)
+  const match = await withTimeout(getMatch(matchId), 10000, 'startMatch:getMatch')
   if (!match) throw new Error('Match not found')
   const admins = match.adminIds || [match.creatorId]
   if (!admins.includes(userId)) {
@@ -151,30 +161,34 @@ export async function startMatch(matchId: string, userId: string) {
     updates.activeRefs = arrayUnion(...newRefs)
     updates.waitingRoom = []
   }
-  await updateDoc(doc(requireDb(), 'matches', matchId), updates)
+  await withTimeout(updateDoc(doc(requireDb(), 'matches', matchId), updates), 10000, 'startMatch:updateDoc')
 }
 
 export async function endMatch(matchId: string, userId: string) {
-  const match = await getMatch(matchId)
+  const match = await withTimeout(getMatch(matchId), 10000, 'endMatch:getMatch')
   if (!match) throw new Error('Match not found')
   const admins = match.adminIds || [match.creatorId]
   if (!admins.includes(userId)) {
     throw new Error('Only admins can end the match')
   }
-  await updateDoc(doc(requireDb(), 'matches', matchId), {
-    status: 'ended',
-    endedAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  })
+  await withTimeout(
+    updateDoc(doc(requireDb(), 'matches', matchId), {
+      status: 'ended',
+      endedAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    }),
+    10000,
+    'endMatch:updateDoc',
+  )
 }
 
 export async function deleteMatch(matchId: string, userId: string) {
-  const match = await getMatch(matchId)
+  const match = await withTimeout(getMatch(matchId), 10000, 'deleteMatch:getMatch')
   if (!match) throw new Error('Match not found')
   if (match.creatorId !== userId) {
     throw new Error('Only the creator can delete a match')
   }
-  await deleteDoc(doc(requireDb(), 'matches', matchId))
+  await withTimeout(deleteDoc(doc(requireDb(), 'matches', matchId)), 10000, 'deleteMatch:deleteDoc')
 }
 
 export async function joinMatchAsRef(matchId: string, userId: string) {
@@ -231,16 +245,41 @@ export async function leaveMatch(
 ) {
   const database = requireDb()
   if (role === 'spectator') {
-    await updateDoc(doc(database, 'matches', matchId), {
-      spectatorCount: increment(-1),
-      updatedAt: serverTimestamp(),
-    })
+    await withTimeout(
+      updateDoc(doc(database, 'matches', matchId), {
+        spectatorCount: increment(-1),
+        updatedAt: serverTimestamp(),
+      }),
+      5000,
+      'leaveMatch:updateDoc',
+    )
   } else {
-    await updateDoc(doc(database, 'matches', matchId), {
-      activeRefs: arrayRemove(userId),
-      updatedAt: serverTimestamp(),
-    })
+    await withTimeout(
+      updateDoc(doc(database, 'matches', matchId), {
+        activeRefs: arrayRemove(userId),
+        updatedAt: serverTimestamp(),
+      }),
+      5000,
+      'leaveMatch:updateDoc',
+    )
   }
+}
+
+export async function setRefRole(
+  matchId: string,
+  targetUserId: string,
+  role: string | null,
+): Promise<void> {
+  const database = requireDb()
+  const key = `refRoles.${targetUserId}`
+  await withTimeout(
+    updateDoc(doc(database, 'matches', matchId), {
+      [key]: role || '',
+      updatedAt: serverTimestamp(),
+    }),
+    10000,
+    'setRefRole:updateDoc',
+  )
 }
 
 export async function findMatchByCode(

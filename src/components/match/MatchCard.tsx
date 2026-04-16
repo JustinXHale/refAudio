@@ -63,7 +63,7 @@ export function MatchCard({ match, saved, compact }: MatchCardProps) {
             component="img"
             height={compact ? 100 : 140}
             image={match.eventPhotoUrl}
-            alt=""
+            alt={`${match.title} event photo`}
             sx={{ objectFit: 'cover' }}
           />
         )}
@@ -77,7 +77,7 @@ export function MatchCard({ match, saved, compact }: MatchCardProps) {
                     color="error"
                     variant="outlined"
                     label="LIVE"
-                    sx={{ fontWeight: 700, height: compact ? 20 : 24, '& .MuiChip-label': { px: compact ? 0.75 : 1, fontSize: compact ? '0.65rem' : undefined } }}
+                    sx={{ fontWeight: 700, height: compact ? 20 : 24, '& .MuiChip-label': { px: compact ? 0.75 : 1 } }}
                   />
                 )}
                 {!compact && match.isPrivate && (
@@ -109,11 +109,11 @@ export function MatchCard({ match, saved, compact }: MatchCardProps) {
                 {match.location}
               </Typography>
               {teamSummary && (
-                <Typography variant="caption" color="text.disabled" noWrap sx={{ mt: 0.25, display: 'block', fontSize: compact ? '0.6rem' : '0.7rem' }}>
+                <Typography variant="caption" color="text.disabled" noWrap sx={{ mt: 0.25, display: 'block', fontSize: compact ? '0.7rem' : undefined }}>
                   {teamSummary}
                 </Typography>
               )}
-              <Typography variant="caption" color="text.disabled" sx={{ mt: 0.5, display: 'block', fontSize: compact ? '0.65rem' : undefined }}>
+              <Typography variant="caption" color="text.disabled" sx={{ mt: 0.5, display: 'block' }}>
                 {scheduledDate.toLocaleDateString(undefined, {
                   weekday: 'short',
                   month: 'short',
@@ -130,12 +130,12 @@ export function MatchCard({ match, saved, compact }: MatchCardProps) {
             {!compact && (
               <Stack alignItems="flex-end" spacing={0.5} sx={{ flexShrink: 0 }}>
                 <Stack direction="row" alignItems="center" spacing={0.5} color="text.secondary">
-                  <GroupsOutlinedIcon sx={{ fontSize: 16 }} />
+                  <GroupsOutlinedIcon aria-hidden sx={{ fontSize: 16 }} />
                   <Typography variant="caption">{match.activeRefs.length} refs</Typography>
                 </Stack>
                 {match.allowSpectators && (
                   <Stack direction="row" alignItems="center" spacing={0.5} color="text.secondary">
-                    <VisibilityOutlinedIcon sx={{ fontSize: 16 }} />
+                    <VisibilityOutlinedIcon aria-hidden sx={{ fontSize: 16 }} />
                     <Typography variant="caption">{match.spectatorCount} listening</Typography>
                   </Stack>
                 )}
@@ -146,13 +146,13 @@ export function MatchCard({ match, saved, compact }: MatchCardProps) {
           {compact && (
             <Stack direction="row" spacing={1.5} sx={{ mt: 0.5 }} color="text.secondary">
               <Stack direction="row" alignItems="center" spacing={0.25}>
-                <GroupsOutlinedIcon sx={{ fontSize: 13 }} />
-                <Typography variant="caption" sx={{ fontSize: '0.65rem' }}>{match.activeRefs.length}</Typography>
+                <GroupsOutlinedIcon aria-hidden sx={{ fontSize: 13 }} />
+                <Typography variant="caption">{match.activeRefs.length}</Typography>
               </Stack>
               {match.allowSpectators && (
                 <Stack direction="row" alignItems="center" spacing={0.25}>
-                  <VisibilityOutlinedIcon sx={{ fontSize: 13 }} />
-                  <Typography variant="caption" sx={{ fontSize: '0.65rem' }}>{match.spectatorCount}</Typography>
+                  <VisibilityOutlinedIcon aria-hidden sx={{ fontSize: 13 }} />
+                  <Typography variant="caption">{match.spectatorCount}</Typography>
                 </Stack>
               )}
             </Stack>

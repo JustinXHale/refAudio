@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Navigate } from 'react-router-dom'
 import Box from '@mui/material/Box'
 import Container from '@mui/material/Container'
 import Typography from '@mui/material/Typography'
@@ -83,8 +83,7 @@ export function CreateMatchPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   if (!user) {
-    navigate('/login')
-    return null
+    return <Navigate to="/login" replace />
   }
 
   const canSubmit = title.trim() && location.trim() && date && time
@@ -242,6 +241,8 @@ export function CreateMatchPage() {
                     component="button"
                     type="button"
                     onClick={() => setEventPhotoUrl(preset.url)}
+                    aria-label={`Select ${preset.label} photo${selected ? ' (selected)' : ''}`}
+                    aria-pressed={selected}
                     sx={{
                       position: 'relative',
                       p: 0,
@@ -263,6 +264,7 @@ export function CreateMatchPage() {
                       component="img"
                       src={preset.url}
                       alt=""
+                      aria-hidden
                       sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                       loading="lazy"
                     />
@@ -332,7 +334,7 @@ export function CreateMatchPage() {
           </Box>
 
           <Box>
-            <Typography variant="body2" fontWeight={600} gutterBottom>
+            <Typography id="max-refs-label" variant="body2" fontWeight={600} gutterBottom>
               Max Referees: {maxRefs}
             </Typography>
             <Slider
@@ -341,6 +343,8 @@ export function CreateMatchPage() {
               min={1}
               max={MAX_REFS_LIMIT}
               valueLabelDisplay="auto"
+              aria-labelledby="max-refs-label"
+              getAriaValueText={(v) => `${v} referee${v !== 1 ? 's' : ''}`}
             />
             <Typography variant="caption" color="text.secondary">
               How many refs can connect (1–{MAX_REFS_LIMIT})

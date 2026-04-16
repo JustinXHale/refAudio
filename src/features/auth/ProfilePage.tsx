@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Navigate } from 'react-router-dom'
 import Box from '@mui/material/Box'
 import Container from '@mui/material/Container'
 import Typography from '@mui/material/Typography'
@@ -20,8 +20,7 @@ export function ProfilePage() {
   }
 
   if (!user) {
-    navigate('/login')
-    return null
+    return <Navigate to="/login" replace />
   }
 
   const initial = (profile?.displayName || 'R')[0].toUpperCase()
@@ -33,7 +32,7 @@ export function ProfilePage() {
         <Card elevation={2}>
           <CardContent sx={{ textAlign: 'center', py: 3 }}>
             {user.photoURL ? (
-              <Avatar src={user.photoURL} sx={{ width: 80, height: 80, mx: 'auto', mb: 2 }} />
+              <Avatar src={user.photoURL} alt={profile?.displayName || 'Profile photo'} sx={{ width: 80, height: 80, mx: 'auto', mb: 2 }} />
             ) : (
               <Avatar
                 sx={{

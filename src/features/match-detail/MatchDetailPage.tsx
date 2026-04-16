@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Navigate } from 'react-router-dom'
 import Box from '@mui/material/Box'
 import Container from '@mui/material/Container'
 import Typography from '@mui/material/Typography'
@@ -13,6 +13,7 @@ import Chip from '@mui/material/Chip'
 import IconButton from '@mui/material/IconButton'
 import CircularProgress from '@mui/material/CircularProgress'
 import FormControl from '@mui/material/FormControl'
+import InputLabel from '@mui/material/InputLabel'
 import Select from '@mui/material/Select'
 import MenuItem from '@mui/material/MenuItem'
 import PlaceOutlinedIcon from '@mui/icons-material/PlaceOutlined'
@@ -28,6 +29,7 @@ import {
   endMatch,
   deleteMatch,
   joinMatchAsSpectator,
+  setRefRole,
 } from '@/services/matches'
 import {
   demoStartMatch,
@@ -56,8 +58,7 @@ export function MatchDetailPage() {
   const [saveSaving, setSaveSaving] = useState(false)
 
   if (!user && !loading) {
-    navigate('/login', { replace: true })
-    return null
+    return <Navigate to="/login" replace />
   }
 
   if (loading) {
@@ -226,9 +227,17 @@ export function MatchDetailPage() {
     ended: { label: 'ENDED', color: 'default' as const },
   }
 
-  const handleSetRefRole = (targetUserId: string, role: string) => {
-    if (!user || !matchId || !isDemo) return
-    demoSetRefRole(matchId, user.uid, targetUserId, role || null)
+  const handleSetRefRole = async (targetUserId: string, newRole: string) => {
+    if (!user || !matchId) return
+    try {
+      if (isDemo) {
+        demoSetRefRole(matchId, user.uid, targetUserId, newRole || null)
+      } else {
+        await setRefRole(matchId, targetUserId, newRole || null)
+      }
+    } catch {
+      showToast('Failed to update role', 'error')
+    }
   }
 
   const s = statusChip[match.status]
@@ -246,7 +255,7 @@ export function MatchDetailPage() {
                 component="img"
                 height="200"
                 image={match.eventPhotoUrl}
-                alt=""
+                alt={`${match.title} event photo`}
                 sx={{ objectFit: 'cover' }}
               />
             )}
@@ -304,7 +313,7 @@ export function MatchDetailPage() {
                       <Typography variant="h5" fontFamily="monospace" fontWeight={700} letterSpacing={4}>
                         {match.refCode}
                       </Typography>
-                      <Button size="small" onClick={() => navigator.clipboard.writeText(match.refCode)}>
+                      <Button size="small" onClick={() => { navigator.clipboard.writeText(match.refCode); showToast('Ref code copied') }}>
                         Copy
                       </Button>
                     </Stack>
@@ -327,7 +336,7 @@ export function MatchDetailPage() {
                         <Typography variant="h5" fontFamily="monospace" fontWeight={700} letterSpacing={4}>
                           {match.spectatorCode}
                         </Typography>
-                        <Button size="small" color="warning" onClick={() => navigator.clipboard.writeText(match.spectatorCode || '')}>
+                        <Button size="small" color="warning" onClick={() => { navigator.clipboard.writeText(match.spectatorCode || ''); showToast('Spectator code copied') }}>
                           Copy
                         </Button>
                       </Stack>
@@ -414,8 +423,14 @@ export function MatchDetailPage() {
                         <Stack direction="row" spacing={0.5} alignItems="center" sx={{ flexShrink: 0 }}>
                           {isAdmin && match.status !== 'ended' ? (
                             <FormControl size="small" sx={{ minWidth: 130 }}>
+                              <InputLabel id={`role-label-${refId}`} shrink sx={{ fontSize: '0.75rem' }}>
+                                Role
+                              </InputLabel>
                               <Select
+                                labelId={`role-label-${refId}`}
+                                label="Role"
                                 displayEmpty
+                                notched
                                 value={assignedRole}
                                 onChange={(e) => handleSetRefRole(refId, e.target.value)}
                                 sx={{ fontSize: '0.75rem', height: 30, '& .MuiSelect-select': { py: 0.5 } }}

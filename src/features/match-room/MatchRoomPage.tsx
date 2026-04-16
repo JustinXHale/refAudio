@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
+import { useParams, useSearchParams, useNavigate, Navigate } from 'react-router-dom'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import Stack from '@mui/material/Stack'
@@ -163,9 +163,10 @@ export function MatchRoomPage() {
         await leaveMatch(matchId, user.uid, role)
       }
     } catch {
-      // Best-effort cleanup
+      // leaveMatch may timeout if Firestore is unresponsive; navigate regardless
+    } finally {
+      navigate(`/match/${matchId}`, { replace: true })
     }
-    navigate(`/match/${matchId}`, { replace: true })
   }, [matchId, user, role, navigate, isDemo])
 
   if (loading) {
@@ -178,15 +179,20 @@ export function MatchRoomPage() {
           alignItems: 'center',
           justifyContent: 'center',
         }}
+        aria-busy="true"
       >
-        <CircularProgress sx={{ color: 'common.white' }} />
+        <Stack alignItems="center" spacing={2}>
+          <CircularProgress sx={{ color: 'common.white' }} />
+          <Typography variant="caption" sx={{ color: 'grey.500' }}>
+            Loading event...
+          </Typography>
+        </Stack>
       </Box>
     )
   }
 
   if (!match || !user) {
-    navigate('/')
-    return null
+    return <Navigate to="/" replace />
   }
 
   const isAdmin =
@@ -270,6 +276,8 @@ export function MatchRoomPage() {
               <IconButton
                 onClick={() => setShowPanel(!showPanel)}
                 aria-label="Manage participants"
+                aria-expanded={showPanel}
+                aria-controls="manage-panel"
                 sx={{
                   color: 'grey.400',
                   '&:hover': { color: 'common.white' },
@@ -291,6 +299,7 @@ export function MatchRoomPage() {
 
       {showPanel && isAdmin && (
         <Paper
+          id="manage-panel"
           square
           elevation={0}
           sx={{
@@ -523,6 +532,9 @@ export function MatchRoomPage() {
                           '0%, 100%': { opacity: 0.4 },
                           '50%': { opacity: 1 },
                         },
+                        '@media (prefers-reduced-motion: reduce)': {
+                          animation: 'none',
+                        },
                       }}
                     />
                   ))}
@@ -580,6 +592,8 @@ export function MatchRoomPage() {
               <Button
                 size="small"
                 onClick={() => setShowPanel(!showPanel)}
+                aria-expanded={showPanel}
+                aria-controls="manage-panel"
               >
                 {showPanel ? 'Hide controls' : 'Manage'}
               </Button>

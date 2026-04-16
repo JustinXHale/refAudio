@@ -10,6 +10,7 @@ import Box from '@mui/material/Box'
 import SportsIcon from '@mui/icons-material/Sports'
 import GroupsOutlinedIcon from '@mui/icons-material/GroupsOutlined'
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined'
+import BookmarkAddedOutlinedIcon from '@mui/icons-material/BookmarkAddedOutlined'
 import type { Match } from '@/types'
 import { refDisplayName } from '@/lib/refNames'
 
@@ -18,7 +19,7 @@ interface MatchListItemProps {
   saved?: boolean
 }
 
-export function MatchListItem({ match }: MatchListItemProps) {
+export function MatchListItem({ match, saved }: MatchListItemProps) {
   const navigate = useNavigate()
 
   const scheduledDate =
@@ -52,7 +53,7 @@ export function MatchListItem({ match }: MatchListItemProps) {
           <Avatar
             variant="rounded"
             src={match.eventPhotoUrl}
-            alt=""
+            alt={`${match.title} event photo`}
             sx={{ width: 48, height: 48 }}
           />
         ) : (
@@ -72,8 +73,11 @@ export function MatchListItem({ match }: MatchListItemProps) {
                 color="error"
                 variant="outlined"
                 label="LIVE"
-                sx={{ fontWeight: 700, height: 20, '& .MuiChip-label': { px: 0.75, fontSize: '0.65rem' } }}
+                sx={{ fontWeight: 700, height: 20, '& .MuiChip-label': { px: 0.75 } }}
               />
+            )}
+            {saved && (
+              <BookmarkAddedOutlinedIcon sx={{ fontSize: 16, color: 'secondary.main', flexShrink: 0 }} />
             )}
             <Typography variant="body2" fontWeight={600} noWrap>
               {match.title}
@@ -86,7 +90,7 @@ export function MatchListItem({ match }: MatchListItemProps) {
               {match.location} &middot; {dateStr} at {timeStr}
             </Typography>
             {match.activeRefs.length > 0 && (
-              <Typography variant="caption" color="text.disabled" noWrap component="p" sx={{ fontSize: '0.65rem' }}>
+              <Typography variant="caption" color="text.disabled" noWrap component="p">
                 {match.activeRefs.slice(0, 3).map((uid, i) => {
                   const name = refDisplayName(uid, i)
                   const role = match.refRoles?.[uid]
@@ -101,14 +105,14 @@ export function MatchListItem({ match }: MatchListItemProps) {
 
       <Box sx={{ flexShrink: 0, textAlign: 'right' }}>
         <Stack direction="row" alignItems="center" spacing={0.5} color="text.secondary">
-          <GroupsOutlinedIcon sx={{ fontSize: 14 }} />
-          <Typography variant="caption" sx={{ fontSize: '0.7rem' }}>
+          <GroupsOutlinedIcon aria-hidden sx={{ fontSize: 14 }} />
+          <Typography variant="caption">
             {match.activeRefs.length}
           </Typography>
           {match.allowSpectators && (
             <>
-              <VisibilityOutlinedIcon sx={{ fontSize: 14, ml: 0.5 }} />
-              <Typography variant="caption" sx={{ fontSize: '0.7rem' }}>
+              <VisibilityOutlinedIcon aria-hidden sx={{ fontSize: 14, ml: 0.5 }} />
+              <Typography variant="caption">
                 {match.spectatorCount}
               </Typography>
             </>

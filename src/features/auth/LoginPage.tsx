@@ -77,13 +77,18 @@ export function LoginPage() {
     }
   }
 
+  const [googleLoading, setGoogleLoading] = useState(false)
+
   const handleGoogleSignIn = async () => {
     try {
       setError(null)
+      setGoogleLoading(true)
       await signInWithGoogle()
       navigate('/')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Sign in failed')
+    } finally {
+      setGoogleLoading(false)
     }
   }
 
@@ -100,7 +105,7 @@ export function LoginPage() {
 
       <Container maxWidth="sm" sx={{ py: 6, maxWidth: 512 }}>
         <Stack spacing={3} alignItems="center" textAlign="center" sx={{ mb: 4 }}>
-          <Typography variant="h4" fontWeight={700}>
+          <Typography variant="h4" component="p" fontWeight={700}>
             refOpenMic
           </Typography>
           <Typography variant="body2" color="text.secondary">
@@ -185,7 +190,7 @@ export function LoginPage() {
               variant="outlined"
               size="large"
               onClick={handleGoogleSignIn}
-              disabled={loading}
+              disabled={loading || googleLoading}
               startIcon={
                 <svg width={20} height={20} viewBox="0 0 24 24" aria-hidden>
                   <path
@@ -207,7 +212,7 @@ export function LoginPage() {
                 </svg>
               }
             >
-              Continue with Google
+              {googleLoading ? 'Signing in...' : 'Continue with Google'}
             </Button>
           )}
 

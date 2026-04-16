@@ -20,9 +20,9 @@ export const appTheme = createTheme({
       contrastText: '#fffbeb',
     },
     info: {
-      main: '#166534',
-      light: '#15803d',
-      dark: '#14532d',
+      main: '#0284c7',
+      light: '#38bdf8',
+      dark: '#075985',
     },
     background: {
       default: '#f0fdf4',

@@ -113,7 +113,7 @@ export function JoinByCodePage() {
         <Stack component="form" onSubmit={handleSubmit} spacing={2}>
           <TextField
             fullWidth
-            autoFocus
+            label="Event Code"
             value={code}
             onChange={(e) => setCode(e.target.value.toUpperCase().slice(0, 6))}
             placeholder="ABC123"
@@ -126,6 +126,7 @@ export function JoinByCodePage() {
                 fontFamily: 'ui-monospace, monospace',
               },
             }}
+            InputLabelProps={{ shrink: true }}
           />
           <Button
             type="submit"

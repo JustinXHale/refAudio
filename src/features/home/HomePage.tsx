@@ -156,6 +156,7 @@ export function HomePage() {
           value={tab}
           onChange={(_, v) => setTab(v as Tab)}
           variant="fullWidth"
+          aria-label="Event sections"
           sx={{
             px: 2,
             borderBottom: 1,
@@ -260,7 +261,7 @@ export function HomePage() {
             </Stack>
           ) : matches.length === 0 ? (
             <Stack alignItems="center" py={6} spacing={1}>
-              <Typography variant="h3" component="span" sx={{ opacity: 0.4 }}>
+              <Typography variant="h3" component="span" role="img" aria-hidden sx={{ opacity: 0.4 }}>
                 {tab === 'events' && hasActiveFilters
                   ? '🔍'
                   : tab === 'my-events'
