@@ -40,6 +40,7 @@ export interface CreateMatchInput {
   scheduledTime: Date
   eventType: string
   eventSubtype?: string
+  eventPhotoUrl?: string
   isPrivate: boolean
   allowSpectators: boolean
   maxRefs: number
@@ -54,6 +55,7 @@ export async function createMatch(input: CreateMatchInput): Promise<string> {
     scheduledTime: input.scheduledTime,
     eventType: input.eventType,
     eventSubtype: input.eventSubtype || null,
+    eventPhotoUrl: input.eventPhotoUrl || null,
     status: 'upcoming' as const,
     isPublic: !input.isPrivate,
     isPrivate: input.isPrivate,

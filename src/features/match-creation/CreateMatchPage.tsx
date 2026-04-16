@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Box from '@mui/material/Box'
 import Container from '@mui/material/Container'
@@ -19,6 +19,7 @@ import { AppShell } from '@/components/layout/AppShell'
 import { Header } from '@/components/layout/Header'
 import { createMatch } from '@/services/matches'
 import { demoCreateMatch } from '@/services/demo'
+import { EVENT_PHOTO_PRESETS, compressImageFileToDataUrl } from '@/lib/eventPhotos'
 import { DEFAULT_MAX_REFS, MAX_REFS_LIMIT, type EventType } from '@/types'
 
 const EVENT_TYPE_OPTIONS: Array<{ value: EventType; label: string }> = [
@@ -75,6 +76,9 @@ export function CreateMatchPage() {
   const [maxRefs, setMaxRefs] = useState(DEFAULT_MAX_REFS)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [eventPhotoUrl, setEventPhotoUrl] = useState<string | null>(null)
+  const [photoCompressing, setPhotoCompressing] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   if (!user) {
     navigate('/login')
@@ -98,6 +102,7 @@ export function CreateMatchPage() {
         scheduledTime,
         eventType,
         eventSubtype,
+        ...(eventPhotoUrl ? { eventPhotoUrl } : {}),
         isPrivate,
         allowSpectators,
         maxRefs,
@@ -205,6 +210,121 @@ export function CreateMatchPage() {
               </Select>
             </FormControl>
           </Stack>
+
+          <Box>
+            <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+              Event photo (optional)
+            </Typography>
+            <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1.5 }}>
+              {isDemo
+                ? 'Choose one of the sample images below, or upload your own.'
+                : 'Pick a stock image, upload a JPEG/PNG, or leave blank.'}
+            </Typography>
+
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: 1,
+                mb: 1.5,
+              }}
+            >
+              {EVENT_PHOTO_PRESETS.map((preset) => {
+                const selected = eventPhotoUrl === preset.url
+                return (
+                  <Box
+                    key={preset.id}
+                    component="button"
+                    type="button"
+                    onClick={() => setEventPhotoUrl(preset.url)}
+                    sx={{
+                      position: 'relative',
+                      p: 0,
+                      border: 2,
+                      borderColor: selected ? 'primary.main' : 'divider',
+                      borderRadius: 2,
+                      overflow: 'hidden',
+                      cursor: 'pointer',
+                      bgcolor: 'background.paper',
+                      aspectRatio: '16 / 10',
+                      transition: (theme) =>
+                        theme.transitions.create(['border-color', 'box-shadow'], {
+                          duration: theme.transitions.duration.shorter,
+                        }),
+                      '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main' },
+                    }}
+                  >
+                    <Box
+                      component="img"
+                      src={preset.url}
+                      alt=""
+                      sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                      loading="lazy"
+                    />
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        position: 'absolute',
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        py: 0.25,
+                        px: 0.5,
+                        bgcolor: 'rgba(0,0,0,0.55)',
+                        color: 'common.white',
+                        fontSize: '0.65rem',
+                        lineHeight: 1.2,
+                      }}
+                    >
+                      {preset.label}
+                    </Typography>
+                  </Box>
+                )
+              })}
+            </Box>
+
+            <Stack direction="row" flexWrap="wrap" gap={1} sx={{ mb: 1 }}>
+              <Button
+                type="button"
+                size="small"
+                variant="outlined"
+                disabled={!eventPhotoUrl}
+                onClick={() => setEventPhotoUrl(null)}
+              >
+                No photo
+              </Button>
+              <Button
+                type="button"
+                size="small"
+                variant="outlined"
+                disabled={photoCompressing}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                {photoCompressing ? 'Processing…' : 'Upload your photo'}
+              </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                hidden
+                onChange={async (e) => {
+                  const file = e.target.files?.[0]
+                  e.target.value = ''
+                  if (!file) return
+                  setPhotoCompressing(true)
+                  setError(null)
+                  try {
+                    const dataUrl = await compressImageFileToDataUrl(file)
+                    setEventPhotoUrl(dataUrl)
+                  } catch (err) {
+                    setError(err instanceof Error ? err.message : 'Could not use that image')
+                  } finally {
+                    setPhotoCompressing(false)
+                  }
+                }}
+              />
+            </Stack>
+          </Box>
 
           <Box>
             <Typography variant="body2" fontWeight={600} gutterBottom>

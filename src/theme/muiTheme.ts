@@ -1,34 +1,34 @@
 import { createTheme } from '@mui/material/styles'
 
 /**
- * Studio palette: deep purple (brand / primary actions) + cyan (accents / signal).
+ * Studio palette: dark forest green (brand / primary) + amber (secondary accents).
  * See `.design/theme.md` for tokens and usage rules.
  */
 export const appTheme = createTheme({
   palette: {
     mode: 'light',
     primary: {
-      main: '#7c3aed',
-      light: '#8b5cf6',
-      dark: '#6d28d9',
+      main: '#166534',
+      light: '#15803d',
+      dark: '#14532d',
       contrastText: '#ffffff',
     },
     secondary: {
-      main: '#06b6d4',
-      light: '#22d3ee',
-      dark: '#0891b2',
-      contrastText: '#042f2e',
+      main: '#b45309',
+      light: '#d97706',
+      dark: '#92400e',
+      contrastText: '#fffbeb',
     },
     info: {
-      main: '#06b6d4',
-      light: '#22d3ee',
-      dark: '#0891b2',
+      main: '#166534',
+      light: '#15803d',
+      dark: '#14532d',
     },
     background: {
-      default: '#f8f5ff',
+      default: '#f0fdf4',
       paper: '#ffffff',
     },
-    divider: 'rgba(109, 40, 217, 0.12)',
+    divider: 'rgba(22, 101, 52, 0.12)',
   },
   shape: {
     borderRadius: 12,

@@ -6,8 +6,8 @@ This file contains a chronological record of key design updates and decisions fo
 
 ## 2026-04-16
 
-### [Update] Studio color theme (purple + cyan)
-- See **`.design/theme.md`** for palette tokens and usage rules; primary purple and secondary cyan with a light violet-tinted app background for a more distinctive, pro-audio feel than default blue/gray.
+### [Update] Studio color theme (dark green + amber)
+- See **`.design/theme.md`** for palette tokens and usage rules; primary forest green and secondary amber with a very light green-tinted app canvas for a pitch-side, field-officiating feel.
 
 ### [Update] Material Design (MUI) layout across PWA
 - Adopted Material UI with a shared theme, top app bars, bottom navigation, cards, and form controls so screens follow consistent Material patterns on mobile.

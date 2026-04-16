@@ -4,6 +4,11 @@ This file contains a chronological record of key design updates and decisions fo
 
 ---
 
+## 2026-04-16
+
+### [Update] Optional event cover image
+- Create flow includes **10 preset thumbnails** (stable placeholder URLs) plus **upload your own** (compressed JPEG data URL for POC); optional — cards and match detail show the image when set.
+
 ## 2026-04-15
 
 ### [Update] Initial match creation flow

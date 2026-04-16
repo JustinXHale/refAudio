@@ -8,6 +8,7 @@ import Button from '@mui/material/Button'
 import Alert from '@mui/material/Alert'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
+import CardMedia from '@mui/material/CardMedia'
 import Chip from '@mui/material/Chip'
 import IconButton from '@mui/material/IconButton'
 import CircularProgress from '@mui/material/CircularProgress'
@@ -222,7 +223,16 @@ export function MatchDetailPage() {
         <Stack spacing={3}>
           {error && <Alert severity="error">{error}</Alert>}
 
-          <Card elevation={2}>
+          <Card elevation={2} sx={{ overflow: 'hidden' }}>
+            {match.eventPhotoUrl && (
+              <CardMedia
+                component="img"
+                height="200"
+                image={match.eventPhotoUrl}
+                alt=""
+                sx={{ objectFit: 'cover' }}
+              />
+            )}
             <CardContent>
               <Stack direction="row" flexWrap="wrap" gap={1} sx={{ mb: 2 }}>
                 <Chip size="small" label={s.label} color={s.color} variant={match.status === 'live' ? 'filled' : 'outlined'} />

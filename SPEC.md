@@ -400,6 +400,7 @@ interface Match {
   level: MatchLevel;             // "MLR" | "club" | "youth" | "high-school" | "other"
   location: string;              // "Seattle, WA" or "Oak Park Field 2"
   scheduledTime: Timestamp;
+  eventPhotoUrl?: string;         // Optional cover: HTTPS URL or hosted image (see POC)
 
   // Status
   status: MatchStatus;           // "upcoming" | "live" | "ended"

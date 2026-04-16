@@ -2,13 +2,15 @@
 
 /* Align with `.design/theme.md` — MUI theme in `src/theme/muiTheme.ts` is source of truth for app UI */
 @theme {
-  --color-primary: #7c3aed;
-  --color-primary-light: #8b5cf6;
-  --color-primary-dark: #6d28d9;
-  --color-secondary: #06b6d4;
-  --color-secondary-light: #22d3ee;
-  --color-secondary-dark: #0891b2;
-  --color-background: #f8f5ff;
+  --color-primary: #166534;
+  --color-primary-light: #15803d;
+  --color-primary-dark: #14532d;
+  --color-on-primary: #ffffff;
+  --color-secondary: #b45309;
+  --color-secondary-light: #d97706;
+  --color-secondary-dark: #92400e;
+  --color-on-secondary: #fffbeb;
+  --color-background: #f0fdf4;
 }
 
 @layer base {
@@ -29,12 +31,14 @@
 
 @layer components {
   .btn-primary {
-    @apply bg-primary hover:bg-primary-dark text-white font-medium py-3 px-6 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply bg-primary hover:bg-primary-dark font-medium py-3 px-6 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+    color: var(--color-on-primary);
   }
 
   .btn-secondary {
-    @apply text-white font-medium py-3 px-6 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply font-medium py-3 px-6 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
     background-color: var(--color-secondary);
+    color: var(--color-on-secondary);
   }
   .btn-secondary:hover {
     background-color: var(--color-secondary-dark);

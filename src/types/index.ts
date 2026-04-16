@@ -34,6 +34,8 @@ export interface Match {
   level: MatchLevel
   location: string
   scheduledTime: Timestamp
+  /** Cover image: HTTPS URL or JPEG data URL (POC). */
+  eventPhotoUrl?: string
   eventType: EventType
   eventSubtype?: string
 

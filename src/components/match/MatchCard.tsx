@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import Card from '@mui/material/Card'
 import CardActionArea from '@mui/material/CardActionArea'
 import CardContent from '@mui/material/CardContent'
+import CardMedia from '@mui/material/CardMedia'
 import Typography from '@mui/material/Typography'
 import Stack from '@mui/material/Stack'
 import Box from '@mui/material/Box'
@@ -37,6 +38,15 @@ export function MatchCard({ match, saved }: MatchCardProps) {
       }}
     >
       <CardActionArea onClick={() => navigate(`/match/${match.id}`)}>
+        {match.eventPhotoUrl && (
+          <CardMedia
+            component="img"
+            height="140"
+            image={match.eventPhotoUrl}
+            alt=""
+            sx={{ objectFit: 'cover' }}
+          />
+        )}
         <CardContent sx={{ p: 2 }}>
           <Stack direction="row" spacing={2} alignItems="flex-start" justifyContent="space-between">
             <Box sx={{ minWidth: 0, flex: 1 }}>

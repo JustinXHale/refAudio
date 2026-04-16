@@ -49,7 +49,7 @@ Key decisions documented in [`.design/decisions/`](.design/decisions/):
 - [Public by Default](.design/decisions/2026-04-15-public-by-default.md) - Why matches are public/searchable
 
 ### Visual theme
-- **[.design/theme.md](.design/theme.md)** — Color tokens (purple/cyan) and usage rules for MUI + CSS.
+- **[.design/theme.md](.design/theme.md)** — Color tokens (dark green primary, amber secondary) and usage rules for MUI + CSS.
 
 ---
 

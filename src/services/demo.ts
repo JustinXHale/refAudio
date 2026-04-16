@@ -74,6 +74,7 @@ export interface CreateMatchInput {
   scheduledTime: Date
   eventType: string
   eventSubtype?: string
+  eventPhotoUrl?: string
   isPrivate: boolean
   allowSpectators: boolean
   maxRefs: number
@@ -89,6 +90,7 @@ export function demoCreateMatch(input: CreateMatchInput): string {
     title: input.title,
     level: 'club',
     location: input.location,
+    ...(input.eventPhotoUrl ? { eventPhotoUrl: input.eventPhotoUrl } : {}),
     scheduledTime: toTimestamp(input.scheduledTime),
     eventType: input.eventType,
     eventSubtype: input.eventSubtype,
