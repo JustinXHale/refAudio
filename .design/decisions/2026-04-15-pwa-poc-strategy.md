@@ -5,7 +5,7 @@
 
 ## Context
 
-Need to validate the core refAudio concept (phone-based referee communication with spectator mode) before committing to a full native app build. The key questions to validate:
+Need to validate the core refOpenMic concept (phone-based referee communication with spectator mode) before committing to a full native app build. The key questions to validate:
 
 1. Is audio quality acceptable over cellular/WiFi?
 2. Does the spectator mode (listen-only) work reliably?

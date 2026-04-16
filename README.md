@@ -1,8 +1,8 @@
-# refAudio
+# refOpenMic
 
 **Professional-quality referee communication for everyone.**
 
-refAudio turns smartphones and existing Bluetooth headsets into a platform for transparent, community-driven sports officiating. No $400 radios required.
+refOpenMic turns smartphones and existing Bluetooth headsets into a platform for transparent, community-driven sports officiating. No $400 radios required.
 
 ---
 
@@ -20,7 +20,7 @@ We're building a PWA first to validate the concept with real referees before com
 
 Local referees earn ~$100 per game but traditional referee radios cost $400+ per unit. The economics don't work. Meanwhile, everyone already has Bluetooth headsets and smartphones.
 
-refAudio eliminates the economic barrier to quality referee communication by using hardware people already own.
+refOpenMic eliminates the economic barrier to quality referee communication by using hardware people already own.
 
 **For Referees:**
 - $0 equipment cost
@@ -39,7 +39,7 @@ refAudio eliminates the economic barrier to quality referee communication by usi
 ## Documentation
 
 ### Core Documents
-- **[VISION.md](VISION.md)** - The north star: why this exists, guiding principles, what refAudio is and isn't
+- **[VISION.md](VISION.md)** - The north star: why this exists, guiding principles, what refOpenMic is and isn't
 - **[SPEC.md](SPEC.md)** - Technical specification: features, data models, architecture, POC strategy
 - **[.design/README.md](.design/README.md)** - Design history and decision tracking guidelines
 
@@ -47,6 +47,19 @@ refAudio eliminates the economic barrier to quality referee communication by usi
 Key decisions documented in [`.design/decisions/`](.design/decisions/):
 - [PWA POC Strategy](.design/decisions/2026-04-15-pwa-poc-strategy.md) - Why PWA first, Flutter later
 - [Public by Default](.design/decisions/2026-04-15-public-by-default.md) - Why matches are public/searchable
+
+### Visual theme
+- **[.design/theme.md](.design/theme.md)** — Color tokens (purple/cyan) and usage rules for MUI + CSS.
+
+---
+
+## Live demo (GitHub Pages)
+
+Pushes to `main` trigger [`.github/workflows/deploy-pages.yml`](.github/workflows/deploy-pages.yml), which builds the Vite app (with base path `/refAudio/`) and deploys to GitHub Pages.
+
+**URL:** [https://justinxhale.github.io/refAudio/](https://justinxhale.github.io/refAudio/)
+
+**First-time setup:** In the GitHub repo, go to **Settings → Pages → Build and deployment** and set **Source** to **GitHub Actions** (not “Deploy from a branch”). The first workflow run after that will publish the site.
 
 ---
 
@@ -110,7 +123,8 @@ The POC is successful if:
 - LiveKit Cloud
 
 **Deployment:**
-- Vercel or Firebase Hosting
+- **GitHub Pages** (automatic from `main` via Actions)
+- Optional: Vercel or Firebase Hosting for custom domains / previews
 
 ---
 
@@ -124,8 +138,8 @@ The POC is successful if:
 ### Setup (Coming Soon)
 ```bash
 # Clone repo
-git clone https://github.com/yourusername/refAudio.git
-cd refAudio
+git clone https://github.com/yourusername/refOpenMic.git
+cd refOpenMic
 
 # Install dependencies
 npm install
@@ -144,15 +158,15 @@ npm run dev
 
 ## Core Principles
 
-refAudio has one job: **make voice communication accessible and transparent for grassroots referees.**
+refOpenMic has one job: **make voice communication accessible and transparent for grassroots referees.**
 
-**What refAudio IS:**
+**What refOpenMic IS:**
 - Voice communication platform
 - Match discovery/browsing
 - Spectator listen-only mode
 - Public by default, private as opt-in
 
-**What refAudio IS NOT:**
+**What refOpenMic IS NOT:**
 - Match timers or score tracking
 - Event logging or incident tracking
 - Referee workflow management
@@ -193,7 +207,7 @@ TBD
 ## Contact
 
 **Project Lead:** [Your Name]
-**Questions:** [Create an issue](https://github.com/yourusername/refAudio/issues)
+**Questions:** [Create an issue](https://github.com/yourusername/refOpenMic/issues)
 
 ---
 

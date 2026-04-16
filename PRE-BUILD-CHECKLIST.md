@@ -9,7 +9,7 @@ Before we start coding the POC, complete these setup tasks.
 ### Create Firebase Project
 - [ ] Go to [Firebase Console](https://console.firebase.google.com/)
 - [ ] Click "Add Project"
-- [ ] Name: `refAudio-poc` (or similar)
+- [ ] Name: `refOpenMic-poc` (or similar)
 - [ ] Disable Google Analytics (not needed for POC)
 - [ ] Click "Create Project"
 
@@ -31,7 +31,7 @@ Before we start coding the POC, complete these setup tasks.
 - [ ] In Firebase Console, go to **Project Settings** (gear icon)
 - [ ] Scroll to "Your apps"
 - [ ] Click the **Web** icon (`</>`)
-- [ ] Register app: `refAudio-web`
+- [ ] Register app: `refOpenMic-web`
 - [ ] Copy the config object (you'll need this later)
 
 ```javascript
@@ -63,7 +63,7 @@ firebase login
 
 ### Create Project
 - [ ] In LiveKit Console, click "Create Project"
-- [ ] Name: `refAudio-poc`
+- [ ] Name: `refOpenMic-poc`
 - [ ] Region: Choose closest to your users
 - [ ] Click "Create"
 
@@ -132,10 +132,10 @@ git commit -m "Initial project foundation: VISION, SPEC, design system"
 ```
 
 ### Create GitHub Repo (Optional but Recommended)
-- [ ] Create new repo on GitHub: `refAudio`
+- [ ] Create new repo on GitHub: `refOpenMic`
 - [ ] Push local repo:
 ```bash
-git remote add origin https://github.com/yourusername/refAudio.git
+git remote add origin https://github.com/yourusername/refOpenMic.git
 git push -u origin main
 ```
 

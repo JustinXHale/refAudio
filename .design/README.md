@@ -2,7 +2,9 @@
 
 **Version 1.0**
 
-This folder captures design context, rationale, and history for refAudio. It serves as a living record that helps AI assistants and humans understand the "why" behind design decisions.
+This folder captures design context, rationale, and history for refOpenMic. It serves as a living record that helps AI assistants and humans understand the "why" behind design decisions.
+
+**Visual theme (colors, surfaces, tokens):** See **[theme.md](./theme.md)** — keep in sync with `src/theme/muiTheme.ts` and `src/index.css`.
 
 ## Purpose
 

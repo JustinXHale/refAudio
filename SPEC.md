@@ -1,4 +1,4 @@
-# refAudio - Technical Specification
+# refOpenMic - Technical Specification
 
 **Version:** 1.0
 **Last Updated:** 2026-04-15
@@ -25,10 +25,10 @@
 
 ## Overview
 
-refAudio is a mobile-first platform that enables real-time voice communication for referee teams using existing smartphones and Bluetooth headsets. Matches are public and searchable by default, with optional private mode for sensitive events.
+refOpenMic is a mobile-first platform that enables real-time voice communication for referee teams using existing smartphones and Bluetooth headsets. Matches are public and discoverable by default. Referees join via a shared **Ref Code**; spectators can listen from the public listing.
 
 ### Core Use Case
-A referee creates a public match for "Oak Park HS vs Lincoln". Four other refs join the match room. They all connect their Bluetooth headsets and communicate via full-duplex voice. Meanwhile, 23 spectators browse the app, find the match, and listen to the referee communications in real-time.
+A referee creates a match for "Oak Park HS vs Lincoln" and gets a Ref Code (e.g. `HX7K9P`). They text their crew: "here's the ref code, connect when you get to the field." Four refs enter the code in the app and land in a waiting room. When the match starts, all waiting refs auto-connect with full-duplex voice. Meanwhile, 23 spectators browse the public match list, find the match, and listen to the referee communications in real-time.
 
 ---
 
@@ -41,6 +41,7 @@ A referee creates a public match for "Oak Park HS vs Lincoln". Four other refs j
 
 **Tech Stack:**
 - **Frontend:** React + TypeScript + Vite
+- **UI:** Material UI (MUI) + Emotion (Material Design layout and components)
 - **Auth:** Firebase Authentication
 - **Database:** Cloud Firestore
 - **Voice:** LiveKit React SDK
@@ -109,7 +110,7 @@ A referee creates a public match for "Oak Park HS vs Lincoln". Four other refs j
 
 | Constraint | Value | Rationale |
 |------------|-------|-----------|
-| Max active refs per match | 5 | Typical crew: Ref + 2 ARs + TMO + reserve |
+| Max active refs per match | 10 (default 5) | Configurable by organizer. Default covers Ref + 2 ARs + TMO + reserve |
 | Max spectators per match | 100 | Start conservative, scale based on testing |
 | Audio latency target | <300ms | Acceptable for real-time officiating |
 | Minimum supported iOS | 14.0 | WebRTC support |
@@ -133,42 +134,54 @@ A referee creates a public match for "Oak Park HS vs Lincoln". Four other refs j
 
 ## User Roles
 
-### 1. Match Creator (Referee)
+### 1. Match Creator (Organizer)
 **Capabilities:**
-- Create new matches (public or private)
-- Configure match metadata
-- Enable/disable spectator access
-- End match
-- Remove participants (future)
+- Create matches (always public/discoverable)
+- Configure match metadata and spectator access
+- Share Ref Code with officiating crew
+- Grant/revoke admin rights to other refs
+- Start/end match
+- Remove participants, mute individuals or all
 
 **Limitations:**
 - Same audio permissions as other refs
 - Cannot modify match after it goes live (MVP)
 
-### 2. Referee (Active Participant)
+### 2. Admin (Delegated by Creator)
 **Capabilities:**
-- Join match as active participant
+- Start/end match
+- See all participants, mute/unmute, remove people
+- Same full-duplex audio as regular refs
+
+**Limitations:**
+- Cannot grant admin to others (only creator can)
+- Cannot remove the creator
+
+### 3. Referee (Active Participant)
+**Capabilities:**
+- Join match using Ref Code (6-character code shared by organizer)
+- Pre-join waiting room for upcoming matches (auto-connect on match start)
 - Full-duplex voice transmission and reception
 - See connection status of other participants
 - Leave match
 
 **Limitations:**
 - Max 5 per match
-- Cannot join as both ref and spectator
+- Requires Ref Code — cannot self-promote from spectator to ref
 
-### 3. Spectator (Listener)
+### 4. Spectator (Listener)
 **Capabilities:**
 - Browse public matches (live and upcoming)
-- Join public matches as listener
+- Join live matches as listener (no code needed)
+- Subscribe to "Notify Me When Live" for upcoming matches
 - Receive audio stream from refs
 - Leave match
 
 **Limitations:**
 - Zero transmission capability (receive-only)
-- Cannot join private matches without code
 - Subject to max spectator limit per match
 
-### 4. Unauthenticated User
+### 5. Unauthenticated User
 **Capabilities:**
 - Browse public matches (read-only)
 - View match details
@@ -190,19 +203,28 @@ A referee creates a public match for "Oak Park HS vs Lincoln". Four other refs j
 - [ ] Anonymous browsing (no auth required to view match list)
 
 #### Match Management
-- [ ] Create public match
-- [ ] Create private match (with generated code)
-- [ ] Set match metadata (title, level, location, scheduled time)
+- [ ] Create match (public by default, always discoverable)
+- [ ] Every match gets a unique Ref Code (6-char alphanumeric)
+- [ ] Set match metadata (title, location, scheduled time)
 - [ ] Configure spectator access (on/off)
-- [ ] End match
+- [ ] Admin role: creator can delegate admin to other refs
+- [ ] Admin controls: mute/unmute individuals, mute all, remove participants
+- [ ] Start/end match (creator or admin)
 - [ ] Match status: `upcoming`, `live`, `ended`
 
 #### Match Discovery
 - [ ] Browse live matches
 - [ ] Browse upcoming matches
+- [ ] "My Matches" tab (created, joined, or waiting-room matches)
 - [ ] View match details (metadata, participant count, spectator count)
-- [ ] Join public match (as ref or spectator)
-- [ ] Join private match with code
+- [ ] "Notify Me When Live" button on upcoming matches
+
+#### Joining
+- [ ] Enter Ref Code to join as referee (full-duplex audio)
+- [ ] If match is upcoming: placed in waiting room, auto-connect on start
+- [ ] If match is live: connect immediately as referee
+- [ ] Join as spectator directly from match detail (no code needed)
+- [ ] Pre-join waiting room for upcoming matches
 
 #### Audio Communication
 - [ ] Full-duplex voice for refs (always-on, no push-to-talk)
@@ -229,9 +251,9 @@ A referee creates a public match for "Oak Park HS vs Lincoln". Four other refs j
 
 #### Match Features
 - [ ] Edit match metadata before going live
-- [ ] Scheduled notifications (upcoming matches you're in)
+- [x] Notify me when live (browser notifications for upcoming matches) — moved to MVP
+- [ ] Push notifications (native, requires service worker or Flutter)
 - [ ] Match history (past matches you participated in)
-- [ ] Remove participants (creator only)
 
 #### Audio Enhancements
 - [ ] Audio quality settings (bandwidth optimization)
@@ -256,100 +278,76 @@ A referee creates a public match for "Oak Park HS vs Lincoln". Four other refs j
 
 ## User Flows
 
-### Flow 1: Create Public Match (Match Creator)
+### Flow 1: Create Match (Organizer)
 
 ```
 1. User opens app
 2. Taps "Create Match"
 3. Enters match details:
    - Title (required)
-   - Level: dropdown (MLR, Club, Youth, High School, Other)
    - Location (required)
    - Scheduled time (required)
 4. Toggle "Allow Spectators" (default: ON)
-5. Toggle "Private Match" (default: OFF)
-6. Taps "Create Match"
-7. Match is created → status: "upcoming"
-8. User sees match room with:
+5. Taps "Create Match"
+6. Match is created → status: "upcoming"
+7. User sees match detail with:
    - Match details
-   - Join code (if private)
+   - Ref Code (e.g. "HX7K9P") with "Copy" button
+   - Waiting room (shows pre-joined refs)
    - "Start Match" button
-   - Share button
-9. User connects Bluetooth headset
-10. Taps "Start Match"
-11. Match status → "live"
-12. LiveKit room created
-13. User joins voice channel as ref
-14. Match appears in public "Live Now" list
+8. User shares Ref Code with officiating crew
+9. Taps "Start Match"
+10. Waiting room refs auto-connect → match status → "live"
+11. LiveKit room created
+12. All connected refs get full-duplex audio
+13. Match appears in public "Live Now" list
 ```
 
-### Flow 2: Create Private Match (Match Creator)
+### Flow 2: Join as Referee (via Ref Code)
 
 ```
-1-3. Same as public match
-4. Toggle "Private Match" → ON
-5. System generates 6-digit code
-6. Taps "Create Match"
-7. User sees match room with:
-   - Match details
-   - Join code: "ABC123"
-   - "Copy Code" button
-   - "Start Match" button
-8-13. Same as public match
-14. Match does NOT appear in public list
-```
-
-### Flow 3: Join Public Match as Referee
-
-```
-1. User opens app
-2. Browses "Upcoming" matches
-3. Taps match: "Oak Park HS vs Lincoln"
-4. Views match details
-5. Taps "Join Match"
-6. Selects role: "Referee" (vs "Spectator")
-7. If match is live:
-   - Joins LiveKit room immediately
+1. Organizer texts crew: "Ref code HX7K9P, connect when you're at the field"
+2. Ref opens app → taps "Ref Code" in nav
+3. Enters 6-character Ref Code: "HX7K9P"
+4. If match is upcoming:
+   - Added to waiting room
+   - Sees "You're in the waiting room" confirmation
+   - Auto-connected when match starts
+5. If match is live:
+   - Joins immediately as referee
    - Full-duplex audio enabled
-8. If match is upcoming:
-   - Joins waiting room
-   - Notified when match starts
-9. Connects Bluetooth headset
-10. Starts communicating with other refs
+6. Ref connects Bluetooth headset
+7. Starts communicating with other refs
 ```
 
-### Flow 4: Join Public Match as Spectator
+### Flow 3: Join as Spectator (Public)
 
 ```
 1. User opens app (no auth required for browsing)
 2. Browses "Live Now" matches
-3. Taps match: "Seattle vs San Diego - MLR"
+3. Taps match: "Oak Park HS vs Lincoln"
 4. Views match details (23 spectators listening)
 5. If not authenticated:
    - Prompted to sign in
    - Continues after auth
-6. Taps "Listen"
+6. Taps "Listen as Spectator"
 7. Joins LiveKit room as receive-only participant
 8. Hears referee communications
 9. Can leave at any time
 ```
 
-### Flow 5: Join Private Match with Code
+### Flow 4: Notify Me When Live
 
 ```
-1. User opens app
-2. Taps "Join with Code"
-3. Enters 6-digit code: "ABC123"
-4. System looks up match
-5. If valid:
-   - Shows match details
-   - Continues to role selection (ref/spectator)
-6. If invalid:
-   - Error: "Match not found"
-7. Proceeds as Flow 3 or 4 depending on role
+1. User browses "Upcoming" matches
+2. Taps match to view details
+3. Taps "Notify Me When Live"
+4. When organizer starts match:
+   - User gets browser notification (future: push)
+   - Can tap notification to enter as spectator
 ```
 
-### Flow 6: End Match (Match Creator)
+### Flow 5: End Match (Creator / Admin)
 
 ```
 1. Creator taps "End Match"
@@ -383,6 +381,9 @@ interface User {
   matchesCreated?: number;
   matchesJoined?: number;
   totalListeningTime?: number;
+
+  // Saved matches (bookmark from discovery; same matches still appear in the public list)
+  savedMatchIds?: string[];
 }
 ```
 
@@ -405,24 +406,27 @@ interface Match {
   startedAt?: Timestamp;         // When match went live
   endedAt?: Timestamp;           // When match ended
 
-  // Privacy
-  isPublic: boolean;             // Default: true
+  // Access
+  isPublic: boolean;             // true = listed publicly; false = private event
+  isPrivate: boolean;            // Inverse of isPublic for clarity
   allowSpectators: boolean;      // Default: true
-  isPrivate: boolean;            // Default: false
-  joinCode?: string;             // 6-char code, only if isPrivate
+  refCode: string;               // 6-char alphanumeric, shared with ref crew (always)
+  spectatorCode?: string;        // 6-char code for private events (spectator access)
 
   // Participants
   creatorId: string;             // User ID of creator
-  activeRefs: string[];          // Array of User IDs (max 5)
-  spectators: string[];          // Array of User IDs (max 100)
-  spectatorCount: number;        // Real-time count
+  adminIds: string[];            // User IDs with admin rights (includes creator)
+  activeRefs: string[];          // Array of ref User IDs (max 5)
+  waitingRoom: string[];         // Refs who pre-joined before match started
+  notifyList: string[];          // Users who want notification when match goes live
+  spectatorCount: number;        // Real-time spectator count
 
   // LiveKit
   roomId: string;                // LiveKit room identifier
   roomName: string;              // Human-readable room name
 
   // Limits
-  maxRefs: number;               // Default: 5
+  maxRefs: number;               // Default: 5, configurable 1–10 by organizer
   maxSpectators: number;         // Default: 100
 
   // Future
@@ -612,11 +616,11 @@ User → Flutter App → Firestore query:
 ```typescript
 {
   title: string;
-  level: MatchLevel;
   location: string;
   scheduledTime: Timestamp;
   isPrivate: boolean;
   allowSpectators: boolean;
+  maxRefs: number;             // 1–10, default 5
 }
 ```
 
@@ -625,24 +629,26 @@ User → Flutter App → Firestore query:
 {
   matchId: string;
   roomId: string;
-  joinCode?: string;  // Only if isPrivate
+  refCode: string;             // Always generated
+  spectatorCode?: string;      // Only if isPrivate
 }
 ```
 
 **Logic:**
 1. Validate user is authenticated
 2. Generate unique match ID
-3. Create LiveKit room
-4. If private, generate 6-char join code
-5. Create Match document in Firestore
-6. Add creator to activeRefs
-7. Return match data
+3. Generate 6-char Ref Code (always)
+4. If private, generate 6-char Spectator Code
+5. Create LiveKit room
+6. Create Match document in Firestore
+7. Add creator to activeRefs and adminIds
+8. Return match data with codes
 
 ---
 
 #### `startMatch`
 **Trigger:** HTTPS Callable
-**Auth:** Required (must be creator)
+**Auth:** Required (must be creator or admin)
 
 **Input:**
 ```typescript
@@ -660,15 +666,54 @@ User → Flutter App → Firestore query:
 ```
 
 **Logic:**
-1. Verify user is match creator
+1. Verify user is match creator or admin
 2. Update match status to "live"
 3. Set startedAt timestamp
-4. Generate LiveKit token for creator (publisher role)
-5. Return token
+4. Move all waitingRoom users into activeRefs (up to maxRefs)
+5. Clear waitingRoom array
+6. Trigger notifications for notifyList users
+7. Generate LiveKit token for creator (publisher role)
+8. Return token
 
 ---
 
-#### `joinMatch`
+#### `joinWithRefCode`
+**Trigger:** HTTPS Callable
+**Auth:** Required
+
+**Input:**
+```typescript
+{
+  refCode: string;  // 6-char code shared by organizer
+}
+```
+
+**Output:**
+```typescript
+{
+  success: boolean;
+  matchId: string;
+  status: "upcoming" | "live";
+  liveKitToken?: string;  // Only if match is live
+}
+```
+
+**Logic:**
+1. Look up match by refCode
+2. Verify match is not ended
+3. If match is upcoming:
+   - Add user to waitingRoom
+   - Return matchId + status (no token yet)
+4. If match is live:
+   - Check activeRefs.length < 5
+   - Add user to activeRefs
+   - Generate token with publisher permissions
+   - Return token
+5. Create Participant document
+
+---
+
+#### `joinAsSpectator`
 **Trigger:** HTTPS Callable
 **Auth:** Required
 
@@ -676,8 +721,6 @@ User → Flutter App → Firestore query:
 ```typescript
 {
   matchId: string;
-  role: "referee" | "spectator";
-  joinCode?: string;  // Required if private match
 }
 ```
 
@@ -691,19 +734,13 @@ User → Flutter App → Firestore query:
 ```
 
 **Logic:**
-1. Verify match exists
-2. If private, verify join code
-3. If role === "referee":
-   - Check activeRefs.length < 5
-   - Add user to activeRefs
-   - Generate token with publisher permissions
-4. If role === "spectator":
-   - Check allowSpectators === true
-   - Check spectatorCount < maxSpectators
-   - Increment spectatorCount
-   - Generate token with subscriber permissions
-5. Create Participant document
-6. Return token
+1. Verify match exists and is live
+2. Check allowSpectators === true
+3. Check spectatorCount < maxSpectators
+4. Increment spectatorCount
+5. Generate token with subscriber permissions (receive-only)
+6. Create Participant document
+7. Return token
 
 ---
 
@@ -808,11 +845,12 @@ service cloud.firestore {
 - Anonymous browsing allowed (read-only)
 - No social features in MVP (no following, no DMs)
 
-### Private Matches
-- Join codes are 6 characters (alphanumeric, case-insensitive)
-- ~2.1 billion possible combinations (36^6)
+### Codes
+- Both Ref Codes and Spectator Codes are 6 characters (alphanumeric, case-insensitive, excluding ambiguous chars like 0/O, 1/I/L)
+- ~800 million possible combinations per code (31^6)
 - Codes expire when match ends
-- Private matches not indexed in search
+- **Ref Code:** required to join as referee (full-duplex audio). Always generated.
+- **Spectator Code:** required to listen to private events. Only generated when `isPrivate` is true. Public matches don't need a spectator code.
 
 ### Audio Privacy
 - Spectators are receive-only (enforced by LiveKit)
@@ -904,8 +942,8 @@ service cloud.firestore {
    - Recommendation: Yes, but only before match starts
 
 5. **Spectator notifications**
-   - Push notifications for followed matches?
-   - Phase 2 feature
+   - "Notify Me When Live" button added to MVP
+   - Push notifications (native) deferred to Flutter phase
 
 ---
 
@@ -914,6 +952,8 @@ service cloud.firestore {
 | Version | Date | Changes |
 |---------|------|---------|
 | 1.0 | 2026-04-15 | Initial specification |
+| 1.1 | 2026-04-15 | Ref Code access model, waiting room, notify when live, admin roles |
+| 1.2 | 2026-04-15 | Dual-code system (ref + spectator), configurable maxRefs, private events |
 
 ---
 

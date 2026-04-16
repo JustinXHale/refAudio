@@ -1,8 +1,8 @@
-# refAudio - Vision Document
+# refOpenMic - Vision Document
 
 ## The North Star
 
-**refAudio makes professional-quality referee communication accessible to everyone by turning existing hardware into a platform for transparent, community-driven officiating.**
+**refOpenMic makes professional-quality referee communication accessible to everyone by turning existing hardware into a platform for transparent, community-driven officiating.**
 
 ---
 
@@ -29,7 +29,7 @@ Traditional referee communication systems cost **$400+ per radio**. Local and gr
 
 ## The Solution
 
-refAudio transforms smartphones and existing Bluetooth headsets into a professional referee communication system.
+refOpenMic transforms smartphones and existing Bluetooth headsets into a professional referee communication system.
 
 ### Core Value Propositions
 
@@ -52,11 +52,11 @@ refAudio transforms smartphones and existing Bluetooth headsets into a professio
 
 ---
 
-## What refAudio IS
+## What refOpenMic IS
 
 ### A Platform, Not Just a Tool
 
-refAudio is not a utility app for private team communication. It's a **public platform for discoverable, transparent referee communication**.
+refOpenMic is not a utility app for private team communication. It's a **public platform for discoverable, transparent referee communication**.
 
 **Default Model:**
 - Matches are **public and searchable** by default
@@ -93,11 +93,11 @@ refAudio is not a utility app for private team communication. It's a **public pl
 
 ---
 
-## What refAudio IS NOT
+## What refOpenMic IS NOT
 
 ### Not a Feature Dump
 
-refAudio is **only** the communication layer. It does not include:
+refOpenMic is **only** the communication layer. It does not include:
 
 - ❌ Match timers
 - ❌ Score tracking
@@ -105,22 +105,22 @@ refAudio is **only** the communication layer. It does not include:
 - ❌ Referee management workflows
 - ❌ Game statistics
 
-These belong in other apps (like reflog) that can integrate with refAudio.
+These belong in other apps (like reflog) that can integrate with refOpenMic.
 
 ### Not a Closed System
 
-refAudio is built to be **integration-ready**. Other apps should be able to consume the communication layer through clean APIs.
+refOpenMic is built to be **integration-ready**. Other apps should be able to consume the communication layer through clean APIs.
 
 ### Not Trying to Replace Pro Hardware
 
-refAudio accepts a key trade-off:
+refOpenMic accepts a key trade-off:
 
 **Traditional radios:**
 - Mesh networking (work without cell towers)
 - More reliable in remote locations
 - Higher upfront cost
 
-**refAudio:**
+**refOpenMic:**
 - Requires cellular data connection
 - Works where most games happen (fields with coverage)
 - Zero equipment cost
@@ -131,7 +131,7 @@ We're not competing with VOKKERO for World Cup finals. We're making quality comm
 
 ## Success Metrics
 
-refAudio succeeds when:
+refOpenMic succeeds when:
 
 1. **Local referees use it regularly** - It becomes the default for grassroots matches
 2. **Spectators discover matches** - People browse to find games to listen to
@@ -163,7 +163,7 @@ refAudio succeeds when:
 
 ### The 5-Year Vision
 
-**refAudio becomes the standard platform for grassroots sports officiating communication** - not because we forced it, but because we removed the barriers that prevented it.
+**refOpenMic becomes the standard platform for grassroots sports officiating communication** - not because we forced it, but because we removed the barriers that prevented it.
 
 Refs use it because it works and costs nothing.
 Spectators use it because it connects them to their community.
@@ -176,12 +176,12 @@ The sport improves because quality communication is no longer a luxury.
 When making product decisions, ask:
 
 1. **Does this remove barriers or create them?**
-2. **Does this make refAudio simpler or more complex?**
+2. **Does this make refOpenMic simpler or more complex?**
 3. **Does this support transparency or hide it?**
 4. **Does this belong in the communication layer or somewhere else?**
 5. **Does this serve grassroots refs or only elite officials?**
 
-If a feature doesn't align with these principles, it probably doesn't belong in refAudio.
+If a feature doesn't align with these principles, it probably doesn't belong in refOpenMic.
 
 ---
 
@@ -195,6 +195,6 @@ If a feature doesn't align with these principles, it probably doesn't belong in 
 
 ---
 
-**This is refAudio.**
+**This is refOpenMic.**
 **This is the north star.**
 **Every decision should move us closer to this vision.**

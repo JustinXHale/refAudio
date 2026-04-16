@@ -1,9 +1,9 @@
-# refAudio Cursor Rules
+# refOpenMic Cursor Rules
 
 ## Source of Truth
 
 **MANDATORY: Read these documents before making ANY changes:**
-1. `/VISION.md` - The north star, guiding principles, what refAudio is and isn't
+1. `/VISION.md` - The north star, guiding principles, what refOpenMic is and isn't
 2. `/SPEC.md` - Technical requirements, data models, feature list
 3. `/.design/README.md` - Design history and decision tracking guidelines
 
@@ -16,7 +16,7 @@
 Before implementing ANY feature, ask these 5 questions (from VISION.md):
 
 1. **Does this remove barriers or create them?**
-2. **Does this make refAudio simpler or more complex?**
+2. **Does this make refOpenMic simpler or more complex?**
 3. **Does this support transparency or hide it?**
 4. **Does this belong in the communication layer or somewhere else?**
 5. **Does this serve grassroots refs or only elite officials?**
@@ -28,7 +28,7 @@ If you can't confidently answer these, refer to VISION.md or ask.
 ## Core Principles
 
 ### Communication Layer ONLY
-refAudio does voice communication and match discovery. Nothing else.
+refOpenMic does voice communication and match discovery. Nothing else.
 
 If a feature isn't about:
 - Audio communication (voice)
@@ -36,7 +36,7 @@ If a feature isn't about:
 - User authentication
 - Spectator mode (listen-only)
 
-**It doesn't belong here.** See VISION.md for what refAudio is NOT.
+**It doesn't belong here.** See VISION.md for what refOpenMic is NOT.
 
 ### Build What's in SPEC.md
 - Only build features listed in SPEC.md
