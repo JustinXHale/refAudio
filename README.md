@@ -164,8 +164,8 @@ The POC is successful if:
 ### Setup (Coming Soon)
 ```bash
 # Clone repo
-git clone https://github.com/yourusername/refOpenMic.git
-cd refOpenMic
+git clone https://github.com/justinxhale/refAudio.git
+cd refAudio
 
 # Install dependencies
 npm install
@@ -233,7 +233,7 @@ TBD
 ## Contact
 
 **Project Lead:** [Your Name]
-**Questions:** [Create an issue](https://github.com/yourusername/refOpenMic/issues)
+**Questions:** [Create an issue](https://github.com/justinxhale/refAudio/issues)
 
 ---
 
