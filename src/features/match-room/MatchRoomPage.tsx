@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
@@ -8,14 +8,22 @@ import Button from '@mui/material/Button'
 import Chip from '@mui/material/Chip'
 import Paper from '@mui/material/Paper'
 import CircularProgress from '@mui/material/CircularProgress'
+import Alert from '@mui/material/Alert'
 import TuneIcon from '@mui/icons-material/Tune'
 import MicNoneOutlinedIcon from '@mui/icons-material/MicNoneOutlined'
 import MicOffOutlinedIcon from '@mui/icons-material/MicOffOutlined'
 import CallEndIcon from '@mui/icons-material/CallEnd'
+import { ConnectionState, type Room } from 'livekit-client'
 import { useAuth } from '@/contexts/AuthContext'
 import { Header } from '@/components/layout/Header'
 import { useMatch } from '@/hooks/useMatches'
 import { leaveMatch, subscribeToParticipants } from '@/services/matches'
+import {
+  connectToRoom,
+  setMicEnabled,
+  disconnectRoom,
+  isLiveKitConfigured,
+} from '@/services/livekit'
 import {
   demoLeaveMatch,
   demoGetParticipants,
@@ -41,8 +49,16 @@ export function MatchRoomPage() {
   const [isMuted, setIsMuted] = useState(false)
   const [showPanel, setShowPanel] = useState(false)
   const [connectionState, setConnectionState] = useState<
-    'connecting' | 'connected' | 'disconnected'
+    'connecting' | 'connected' | 'disconnected' | 'error'
   >('connecting')
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const [remoteCount, setRemoteCount] = useState(0)
+
+  const roomRef = useRef<Room | null>(null)
+  const connectingRef = useRef(false)
+
+  const isRef = role === 'referee' || role === 'creator'
+  const canPublish = isRef
 
   useEffect(() => {
     if (!matchId) return
@@ -54,10 +70,66 @@ export function MatchRoomPage() {
     return subscribeToParticipants(matchId, setParticipants)
   }, [matchId, isDemo])
 
+  // LiveKit connection
   useEffect(() => {
-    const timer = setTimeout(() => setConnectionState('connected'), 1500)
-    return () => clearTimeout(timer)
-  }, [])
+    if (!match || !user || isDemo || !isLiveKitConfigured) {
+      if (isDemo) {
+        const timer = setTimeout(() => setConnectionState('connected'), 1500)
+        return () => clearTimeout(timer)
+      }
+      if (!isLiveKitConfigured && !isDemo) {
+        setConnectionState('error')
+        setErrorMsg('LiveKit is not configured. Check environment variables.')
+      }
+      return
+    }
+
+    if (connectingRef.current || roomRef.current) return
+    connectingRef.current = true
+
+    const roomName = match.roomName || `match-${match.id}`
+    const displayName = user.displayName || 'Referee'
+
+    connectToRoom(roomName, user.uid, displayName, canPublish, {
+      onConnectionStateChanged: (state: ConnectionState) => {
+        if (state === ConnectionState.Connected) {
+          setConnectionState('connected')
+          setErrorMsg(null)
+        } else if (state === ConnectionState.Disconnected) {
+          setConnectionState('disconnected')
+        } else if (state === ConnectionState.Reconnecting) {
+          setConnectionState('connecting')
+        }
+      },
+      onParticipantConnected: () => {
+        setRemoteCount((c) => c + 1)
+      },
+      onParticipantDisconnected: () => {
+        setRemoteCount((c) => Math.max(0, c - 1))
+      },
+    })
+      .then((room) => {
+        roomRef.current = room
+        setRemoteCount(room.remoteParticipants.size)
+        connectingRef.current = false
+      })
+      .catch((err) => {
+        console.error('LiveKit connect failed:', err)
+        setConnectionState('error')
+        setErrorMsg(
+          err instanceof Error ? err.message : 'Failed to connect to audio room',
+        )
+        connectingRef.current = false
+      })
+
+    return () => {
+      if (roomRef.current) {
+        disconnectRoom(roomRef.current)
+        roomRef.current = null
+      }
+      connectingRef.current = false
+    }
+  }, [match, user, isDemo, canPublish])
 
   useEffect(() => {
     if (match?.status === 'ended') {
@@ -65,8 +137,25 @@ export function MatchRoomPage() {
     }
   }, [match?.status, matchId, navigate])
 
+  const handleToggleMic = useCallback(() => {
+    if (isDemo) {
+      setIsMuted((m) => !m)
+      return
+    }
+    if (!roomRef.current) return
+    const newMuted = !isMuted
+    setIsMuted(newMuted)
+    setMicEnabled(roomRef.current, !newMuted)
+  }, [isMuted, isDemo])
+
   const handleLeave = useCallback(async () => {
     if (!matchId || !user) return
+
+    if (roomRef.current) {
+      disconnectRoom(roomRef.current)
+      roomRef.current = null
+    }
+
     try {
       if (isDemo) {
         demoLeaveMatch(matchId, user.uid, role)
@@ -100,8 +189,8 @@ export function MatchRoomPage() {
     return null
   }
 
-  const isRef = role === 'referee' || role === 'creator'
-  const isAdmin = match.adminIds?.includes(user.uid) || match.creatorId === user.uid
+  const isAdmin =
+    match.adminIds?.includes(user.uid) || match.creatorId === user.uid
   const isCreator = match.creatorId === user.uid
   const refs = participants.filter(
     (p) => p.role === 'referee' || p.role === 'creator',
@@ -114,7 +203,10 @@ export function MatchRoomPage() {
     demoRemoveParticipant(matchId, user.uid, targetUserId)
   }
 
-  const handleToggleAdmin = (targetUserId: string, currentlyAdmin: boolean) => {
+  const handleToggleAdmin = (
+    targetUserId: string,
+    currentlyAdmin: boolean,
+  ) => {
     if (!matchId || !isCreator || !isDemo) return
     if (currentlyAdmin) {
       demoRevokeAdmin(matchId, user.uid, targetUserId)
@@ -123,7 +215,7 @@ export function MatchRoomPage() {
     }
   }
 
-  const handleToggleMute = (targetUserId: string) => {
+  const handleToggleMuteParticipant = (targetUserId: string) => {
     if (!matchId || !isAdmin || !isDemo) return
     demoToggleMuteParticipant(matchId, targetUserId)
   }
@@ -142,6 +234,14 @@ export function MatchRoomPage() {
     connecting: 'warning.main',
     connected: 'success.main',
     disconnected: 'error.main',
+    error: 'error.main',
+  } as const
+
+  const connectionLabels = {
+    connecting: 'Connecting...',
+    connected: 'Connected',
+    disconnected: 'Reconnecting...',
+    error: 'Error',
   } as const
 
   return (
@@ -159,18 +259,21 @@ export function MatchRoomPage() {
         title={match.title}
         rightAction={
           <Stack direction="row" alignItems="center" spacing={1.5}>
-            <Typography variant="caption" fontWeight={600} sx={{ color: connectionColors[connectionState] }}>
-              {connectionState === 'connecting'
-                ? 'Connecting...'
-                : connectionState === 'connected'
-                  ? 'Connected'
-                  : 'Disconnected'}
+            <Typography
+              variant="caption"
+              fontWeight={600}
+              sx={{ color: connectionColors[connectionState] }}
+            >
+              {connectionLabels[connectionState]}
             </Typography>
             {isAdmin && (
               <IconButton
                 onClick={() => setShowPanel(!showPanel)}
                 aria-label="Manage participants"
-                sx={{ color: 'grey.400', '&:hover': { color: 'common.white' } }}
+                sx={{
+                  color: 'grey.400',
+                  '&:hover': { color: 'common.white' },
+                }}
                 size="small"
               >
                 <TuneIcon />
@@ -179,6 +282,12 @@ export function MatchRoomPage() {
           </Stack>
         }
       />
+
+      {errorMsg && (
+        <Alert severity="error" sx={{ mx: 2, mt: 1 }}>
+          {errorMsg}
+        </Alert>
+      )}
 
       {showPanel && isAdmin && (
         <Paper
@@ -192,15 +301,34 @@ export function MatchRoomPage() {
           }}
         >
           <Box sx={{ maxWidth: 512, mx: 'auto', px: 2, py: 2 }}>
-            <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
-              <Typography variant="subtitle2" fontWeight={700} color="grey.200">
+            <Stack
+              direction="row"
+              alignItems="center"
+              justifyContent="space-between"
+              sx={{ mb: 2 }}
+            >
+              <Typography
+                variant="subtitle2"
+                fontWeight={700}
+                color="grey.200"
+              >
                 Manage Participants
               </Typography>
               <Stack direction="row" spacing={1}>
-                <Button size="small" variant="outlined" color="error" onClick={handleMuteAll}>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="error"
+                  onClick={handleMuteAll}
+                >
                   Mute All
                 </Button>
-                <Button size="small" variant="outlined" color="success" onClick={handleUnmuteAll}>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="success"
+                  onClick={handleUnmuteAll}
+                >
                   Unmute All
                 </Button>
               </Stack>
@@ -217,15 +345,27 @@ export function MatchRoomPage() {
                     direction="row"
                     alignItems="center"
                     justifyContent="space-between"
-                    sx={{ py: 1, px: 1.5, bgcolor: 'grey.900', borderRadius: 2 }}
+                    sx={{
+                      py: 1,
+                      px: 1.5,
+                      bgcolor: 'grey.900',
+                      borderRadius: 2,
+                    }}
                   >
-                    <Stack direction="row" alignItems="center" spacing={1} sx={{ minWidth: 0 }}>
+                    <Stack
+                      direction="row"
+                      alignItems="center"
+                      spacing={1}
+                      sx={{ minWidth: 0 }}
+                    >
                       <Box
                         sx={{
                           width: 8,
                           height: 8,
                           borderRadius: '50%',
-                          bgcolor: p.isMutedByAdmin ? 'error.main' : 'success.main',
+                          bgcolor: p.isMutedByAdmin
+                            ? 'error.main'
+                            : 'success.main',
                           flexShrink: 0,
                         }}
                       />
@@ -233,10 +373,22 @@ export function MatchRoomPage() {
                         {p.displayName}
                       </Typography>
                       {pIsCreator && (
-                        <Chip size="small" label="Creator" sx={{ bgcolor: 'primary.dark', color: 'primary.contrastText' }} />
+                        <Chip
+                          size="small"
+                          label="Creator"
+                          sx={{
+                            bgcolor: 'primary.dark',
+                            color: 'primary.contrastText',
+                          }}
+                        />
                       )}
                       {pIsAdmin && !pIsCreator && (
-                        <Chip size="small" label="Admin" color="warning" variant="outlined" />
+                        <Chip
+                          size="small"
+                          label="Admin"
+                          color="warning"
+                          variant="outlined"
+                        />
                       )}
                       {p.isMutedByAdmin && (
                         <Typography variant="caption" color="error.light">
@@ -246,12 +398,18 @@ export function MatchRoomPage() {
                     </Stack>
 
                     {!isSelf && (
-                      <Stack direction="row" spacing={0.5} sx={{ flexShrink: 0 }}>
+                      <Stack
+                        direction="row"
+                        spacing={0.5}
+                        sx={{ flexShrink: 0 }}
+                      >
                         <Button
                           size="small"
                           variant="contained"
                           color={p.isMutedByAdmin ? 'success' : 'error'}
-                          onClick={() => handleToggleMute(p.userId)}
+                          onClick={() =>
+                            handleToggleMuteParticipant(p.userId)
+                          }
                         >
                           {p.isMutedByAdmin ? 'Unmute' : 'Mute'}
                         </Button>
@@ -260,13 +418,19 @@ export function MatchRoomPage() {
                             size="small"
                             variant="outlined"
                             color="warning"
-                            onClick={() => handleToggleAdmin(p.userId, !!pIsAdmin)}
+                            onClick={() =>
+                              handleToggleAdmin(p.userId, !!pIsAdmin)
+                            }
                           >
                             {pIsAdmin ? '- Admin' : '+ Admin'}
                           </Button>
                         )}
                         {!pIsCreator && (
-                          <Button size="small" color="error" onClick={() => handleRemove(p.userId)}>
+                          <Button
+                            size="small"
+                            color="error"
+                            onClick={() => handleRemove(p.userId)}
+                          >
                             Remove
                           </Button>
                         )}
@@ -278,8 +442,13 @@ export function MatchRoomPage() {
             </Stack>
 
             {match.allowSpectators && spectatorCount > 0 && (
-              <Typography variant="caption" color="grey.500" sx={{ mt: 2, display: 'block' }}>
-                {spectatorCount} spectator{spectatorCount !== 1 ? 's' : ''} listening
+              <Typography
+                variant="caption"
+                color="grey.500"
+                sx={{ mt: 2, display: 'block' }}
+              >
+                {spectatorCount} spectator
+                {spectatorCount !== 1 ? 's' : ''} listening
               </Typography>
             )}
           </Box>
@@ -310,27 +479,46 @@ export function MatchRoomPage() {
             size="small"
             sx={{
               fontWeight: 700,
-              bgcolor: isRef ? (isAdmin ? 'warning.dark' : 'primary.dark') : 'grey.700',
+              bgcolor: isRef
+                ? isAdmin
+                  ? 'warning.dark'
+                  : 'primary.dark'
+                : 'grey.700',
               color: 'common.white',
             }}
           />
         </Box>
 
-        <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Box
+          sx={{
+            flex: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
           <Box sx={{ textAlign: 'center' }}>
             {connectionState === 'connected' ? (
               <>
-                <Stack direction="row" justifyContent="center" spacing={0.5} sx={{ mb: 3 }}>
+                <Stack
+                  direction="row"
+                  justifyContent="center"
+                  spacing={0.5}
+                  sx={{ mb: 3 }}
+                >
                   {[...Array(5)].map((_, i) => (
                     <Box
                       key={i}
                       sx={{
                         width: 6,
                         height: `${20 + (i % 3) * 10}px`,
-                        bgcolor: 'success.main',
+                        bgcolor: isMuted ? 'error.main' : 'success.main',
                         borderRadius: 1,
-                        animation: 'pulse 0.8s ease-in-out infinite',
+                        animation: isMuted
+                          ? 'none'
+                          : 'pulse 0.8s ease-in-out infinite',
                         animationDelay: `${i * 0.15}s`,
+                        opacity: isMuted ? 0.4 : undefined,
                         '@keyframes pulse': {
                           '0%, 100%': { opacity: 0.4 },
                           '50%': { opacity: 1 },
@@ -346,20 +534,53 @@ export function MatchRoomPage() {
                       : 'Your mic is live'
                     : 'Listening to referee comms'}
                 </Typography>
+                {!isDemo && remoteCount > 0 && (
+                  <Typography
+                    variant="caption"
+                    color="grey.600"
+                    sx={{ mt: 1, display: 'block' }}
+                  >
+                    {remoteCount} other participant
+                    {remoteCount !== 1 ? 's' : ''} in room
+                  </Typography>
+                )}
               </>
+            ) : connectionState === 'error' ? (
+              <Typography variant="body2" color="error.light">
+                Connection failed
+              </Typography>
             ) : (
-              <CircularProgress sx={{ color: 'common.white' }} />
+              <Stack alignItems="center" spacing={2}>
+                <CircularProgress sx={{ color: 'common.white' }} />
+                <Typography variant="caption" color="grey.500">
+                  {isRef
+                    ? 'Connecting mic and audio...'
+                    : 'Connecting to listen...'}
+                </Typography>
+              </Stack>
             )}
           </Box>
         </Box>
 
         <Box sx={{ mb: 3 }}>
-          <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
-            <Typography variant="caption" color="grey.500" sx={{ textTransform: 'uppercase', letterSpacing: 1 }}>
+          <Stack
+            direction="row"
+            alignItems="center"
+            justifyContent="space-between"
+            sx={{ mb: 1 }}
+          >
+            <Typography
+              variant="caption"
+              color="grey.500"
+              sx={{ textTransform: 'uppercase', letterSpacing: 1 }}
+            >
               Referees ({refs.length}/{match.maxRefs})
             </Typography>
             {isAdmin && (
-              <Button size="small" onClick={() => setShowPanel(!showPanel)}>
+              <Button
+                size="small"
+                onClick={() => setShowPanel(!showPanel)}
+              >
                 {showPanel ? 'Hide controls' : 'Manage'}
               </Button>
             )}
@@ -403,26 +624,43 @@ export function MatchRoomPage() {
             )}
           </Stack>
           {match.allowSpectators && (
-            <Typography variant="caption" color="grey.500" sx={{ mt: 1.5, display: 'block' }}>
-              {spectatorCount} spectator{spectatorCount !== 1 ? 's' : ''} listening
+            <Typography
+              variant="caption"
+              color="grey.500"
+              sx={{ mt: 1.5, display: 'block' }}
+            >
+              {spectatorCount} spectator
+              {spectatorCount !== 1 ? 's' : ''} listening
             </Typography>
           )}
         </Box>
 
-        <Stack direction="row" justifyContent="center" alignItems="center" spacing={4} sx={{ pb: 3 }}>
+        <Stack
+          direction="row"
+          justifyContent="center"
+          alignItems="center"
+          spacing={4}
+          sx={{ pb: 3 }}
+        >
           {isRef && (
             <IconButton
-              onClick={() => setIsMuted(!isMuted)}
+              onClick={handleToggleMic}
               aria-label={isMuted ? 'Unmute' : 'Mute'}
               sx={{
                 width: 64,
                 height: 64,
                 bgcolor: isMuted ? 'error.dark' : 'grey.700',
                 color: isMuted ? 'error.light' : 'common.white',
-                '&:hover': { bgcolor: isMuted ? 'error.main' : 'grey.600' },
+                '&:hover': {
+                  bgcolor: isMuted ? 'error.main' : 'grey.600',
+                },
               }}
             >
-              {isMuted ? <MicOffOutlinedIcon fontSize="large" /> : <MicNoneOutlinedIcon fontSize="large" />}
+              {isMuted ? (
+                <MicOffOutlinedIcon fontSize="large" />
+              ) : (
+                <MicNoneOutlinedIcon fontSize="large" />
+              )}
             </IconButton>
           )}
 
@@ -442,7 +680,12 @@ export function MatchRoomPage() {
         </Stack>
 
         {isDemo && (
-          <Typography variant="caption" color="grey.700" textAlign="center" sx={{ py: 2, borderTop: 1, borderColor: 'grey.800' }}>
+          <Typography
+            variant="caption"
+            color="grey.700"
+            textAlign="center"
+            sx={{ py: 2, borderTop: 1, borderColor: 'grey.800' }}
+          >
             Demo Mode — audio simulated locally
           </Typography>
         )}
