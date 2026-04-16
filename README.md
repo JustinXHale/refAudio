@@ -55,9 +55,9 @@ Key decisions documented in [`.design/decisions/`](.design/decisions/):
 
 ## Live demo (GitHub Pages)
 
-Pushes to `main` run [`.github/workflows/deploy-pages.yml`](.github/workflows/deploy-pages.yml): build with `base` `/refAudio/`, then push `dist/` to the **`gh-pages`** branch ([peaceiris/actions-gh-pages](https://github.com/peaceiris/actions-gh-pages)).
+Pushes to `main` run [`.github/workflows/deploy-pages.yml`](.github/workflows/deploy-pages.yml): build with `base` `/refOpenMic/`, then push `dist/` to the **`gh-pages`** branch ([peaceiris/actions-gh-pages](https://github.com/peaceiris/actions-gh-pages)).
 
-**URL:** [https://justinxhale.github.io/refAudio/](https://justinxhale.github.io/refAudio/)
+**URL:** [https://justinxhale.github.io/refOpenMic/](https://justinxhale.github.io/refOpenMic/)
 
 ### One-time: enable Pages
 
@@ -164,8 +164,8 @@ The POC is successful if:
 ### Setup (Coming Soon)
 ```bash
 # Clone repo
-git clone https://github.com/justinxhale/refAudio.git
-cd refAudio
+git clone https://github.com/JustinXHale/refOpenMic.git
+cd refOpenMic
 
 # Install dependencies
 npm install
@@ -233,7 +233,7 @@ TBD
 ## Contact
 
 **Project Lead:** [Your Name]
-**Questions:** [Create an issue](https://github.com/justinxhale/refAudio/issues)
+**Questions:** [Create an issue](https://github.com/JustinXHale/refOpenMic/issues)
 
 ---
 

@@ -135,7 +135,7 @@ git commit -m "Initial project foundation: VISION, SPEC, design system"
 - [ ] Create new repo on GitHub: `refOpenMic`
 - [ ] Push local repo:
 ```bash
-git remote add origin https://github.com/yourusername/refOpenMic.git
+git remote add origin https://github.com/JustinXHale/refOpenMic.git
 git push -u origin main
 ```
 

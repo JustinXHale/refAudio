@@ -2,8 +2,8 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
 
-/** GitHub Pages project site: https://<user>.github.io/refAudio/ */
-const githubPagesBase = '/refAudio/'
+/** GitHub Pages project site: https://justinxhale.github.io/refOpenMic/ */
+const githubPagesBase = '/refOpenMic/'
 
 export default defineConfig({
   base: process.env.GITHUB_PAGES === 'true' ? githubPagesBase : '/',

@@ -9,7 +9,7 @@ import { MatchDetailPage } from '@/features/match-detail/MatchDetailPage'
 import { JoinByCodePage } from '@/features/match-detail/JoinByCodePage'
 import { MatchRoomPage } from '@/features/match-room/MatchRoomPage'
 
-/** Matches `vite.config` `base` (e.g. `/refAudio` on GitHub Pages). */
+/** Matches `vite.config` `base` (e.g. `/refOpenMic` on GitHub Pages). */
 const routerBasename =
   import.meta.env.BASE_URL === '/' ? undefined : import.meta.env.BASE_URL.replace(/\/$/, '')
 

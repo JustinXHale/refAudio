@@ -13,7 +13,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/justinxhale/refAudio.git"
+    "url": "git+https://github.com/JustinXHale/refOpenMic.git"
   },
   "keywords": [
     "referee",
@@ -26,9 +26,9 @@
   "author": "Justin Hale",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/justinxhale/refAudio/issues"
+    "url": "https://github.com/JustinXHale/refOpenMic/issues"
   },
-  "homepage": "https://github.com/justinxhale/refAudio#readme",
+  "homepage": "https://github.com/JustinXHale/refOpenMic#readme",
   "devDependencies": {
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
