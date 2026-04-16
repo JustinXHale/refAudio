@@ -7,13 +7,75 @@ import Button from '@mui/material/Button'
 import Stack from '@mui/material/Stack'
 import Divider from '@mui/material/Divider'
 import Alert from '@mui/material/Alert'
+import TextField from '@mui/material/TextField'
+import Link from '@mui/material/Link'
 import { useAuth } from '@/contexts/AuthContext'
 import { Header } from '@/components/layout/Header'
 
 export function LoginPage() {
-  const { signInWithGoogle, signInDemo, firebaseReady, loading } = useAuth()
+  const { signInWithGoogle, signInWithEmail, signUpWithEmail, signInDemo, firebaseReady, loading } = useAuth()
   const [error, setError] = useState<string | null>(null)
+  const [mode, setMode] = useState<'sign-in' | 'sign-up'>('sign-in')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [displayName, setDisplayName] = useState('')
+  const [submitting, setSubmitting] = useState(false)
   const navigate = useNavigate()
+
+  const resetForm = () => {
+    setError(null)
+    setEmail('')
+    setPassword('')
+    setDisplayName('')
+  }
+
+  const toggleMode = () => {
+    resetForm()
+    setMode((m) => (m === 'sign-in' ? 'sign-up' : 'sign-in'))
+  }
+
+  const handleEmailSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(null)
+
+    if (!email.trim() || !password) {
+      setError('Email and password are required.')
+      return
+    }
+    if (mode === 'sign-up' && !displayName.trim()) {
+      setError('Display name is required.')
+      return
+    }
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters.')
+      return
+    }
+
+    try {
+      setSubmitting(true)
+      if (mode === 'sign-up') {
+        await signUpWithEmail(email.trim(), password, displayName.trim())
+      } else {
+        await signInWithEmail(email.trim(), password)
+      }
+      navigate('/')
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Authentication failed'
+      if (msg.includes('auth/email-already-in-use')) {
+        setError('An account with this email already exists. Try signing in.')
+      } else if (msg.includes('auth/invalid-credential') || msg.includes('auth/wrong-password') || msg.includes('auth/user-not-found')) {
+        setError('Invalid email or password.')
+      } else if (msg.includes('auth/invalid-email')) {
+        setError('Please enter a valid email address.')
+      } else if (msg.includes('auth/weak-password')) {
+        setError('Password is too weak. Use at least 6 characters.')
+      } else {
+        setError(msg)
+      }
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   const handleGoogleSignIn = async () => {
     try {
@@ -30,9 +92,11 @@ export function LoginPage() {
     navigate('/')
   }
 
+  const isSignUp = mode === 'sign-up'
+
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-      <Header title="Sign In" showBack />
+      <Header title={isSignUp ? 'Create Account' : 'Sign In'} showBack />
 
       <Container maxWidth="sm" sx={{ py: 6, maxWidth: 512 }}>
         <Stack spacing={3} alignItems="center" textAlign="center" sx={{ mb: 4 }}>
@@ -40,7 +104,7 @@ export function LoginPage() {
             refOpenMic
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Sign in to create and join matches
+            {isSignUp ? 'Create an account to get started' : 'Sign in to create and join events'}
           </Typography>
         </Stack>
 
@@ -51,6 +115,70 @@ export function LoginPage() {
         )}
 
         <Stack spacing={2}>
+          {/* Email / Password form */}
+          {firebaseReady && (
+            <Box component="form" onSubmit={handleEmailSubmit}>
+              <Stack spacing={2}>
+                {isSignUp && (
+                  <TextField
+                    label="Display Name"
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    fullWidth
+                    autoComplete="name"
+                    size="medium"
+                  />
+                )}
+                <TextField
+                  label="Email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  fullWidth
+                  autoComplete="email"
+                  size="medium"
+                />
+                <TextField
+                  label="Password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  fullWidth
+                  autoComplete={isSignUp ? 'new-password' : 'current-password'}
+                  size="medium"
+                />
+                <Button
+                  type="submit"
+                  fullWidth
+                  variant="contained"
+                  size="large"
+                  disabled={submitting || loading}
+                >
+                  {submitting
+                    ? (isSignUp ? 'Creating Account...' : 'Signing In...')
+                    : (isSignUp ? 'Create Account' : 'Sign In')}
+                </Button>
+              </Stack>
+            </Box>
+          )}
+
+          {firebaseReady && (
+            <Typography variant="body2" textAlign="center">
+              {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
+              <Link component="button" variant="body2" onClick={toggleMode} underline="hover">
+                {isSignUp ? 'Sign in' : 'Sign up'}
+              </Link>
+            </Typography>
+          )}
+
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <Divider sx={{ flex: 1 }} />
+            <Typography variant="caption" color="text.disabled">
+              or
+            </Typography>
+            <Divider sx={{ flex: 1 }} />
+          </Stack>
+
           {firebaseReady && (
             <Button
               fullWidth
@@ -91,7 +219,7 @@ export function LoginPage() {
             <Divider sx={{ flex: 1 }} />
           </Stack>
 
-          <Button fullWidth variant="contained" color="primary" size="large" onClick={handleDemoSignIn}>
+          <Button fullWidth variant="text" size="large" onClick={handleDemoSignIn}>
             Try Demo Mode
           </Button>
           <Typography variant="caption" color="text.disabled" textAlign="center">
@@ -100,7 +228,7 @@ export function LoginPage() {
         </Stack>
 
         <Typography variant="caption" color="text.disabled" textAlign="center" display="block" sx={{ mt: 4 }}>
-          Browse matches without signing in from the home screen.
+          Browse events without signing in from the home screen.
         </Typography>
       </Container>
     </Box>

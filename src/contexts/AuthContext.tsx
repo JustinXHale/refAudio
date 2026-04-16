@@ -12,7 +12,7 @@ import {
   type User,
 } from 'firebase/auth'
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore'
-import { auth, db, googleProvider, isFirebaseConfigured } from '@/lib/firebase'
+import { auth, db, googleProvider, isFirebaseConfigured, emailSignIn, emailSignUp } from '@/lib/firebase'
 import type { UserProfile } from '@/types'
 
 interface AuthState {
@@ -22,6 +22,8 @@ interface AuthState {
   firebaseReady: boolean
   isDemo: boolean
   signInWithGoogle: () => Promise<void>
+  signInWithEmail: (email: string, password: string) => Promise<void>
+  signUpWithEmail: (email: string, password: string, displayName: string) => Promise<void>
   signInDemo: () => void
   signOut: () => Promise<void>
 }
@@ -94,6 +96,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await signInWithPopup(auth, googleProvider)
   }
 
+  const signInWithEmail = async (email: string, password: string) => {
+    await emailSignIn(email, password)
+  }
+
+  const signUpWithEmail = async (email: string, password: string, displayName: string) => {
+    await emailSignUp(email, password, displayName)
+  }
+
   const signInDemo = () => {
     setIsDemo(true)
     setUser(DEMO_USER)
@@ -125,6 +135,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         firebaseReady: isFirebaseConfigured,
         isDemo,
         signInWithGoogle,
+        signInWithEmail,
+        signUpWithEmail,
         signInDemo,
         signOut,
       }}

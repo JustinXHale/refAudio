@@ -1,5 +1,12 @@
 import { initializeApp, type FirebaseApp } from 'firebase/app'
-import { getAuth, GoogleAuthProvider, type Auth } from 'firebase/auth'
+import {
+  getAuth,
+  GoogleAuthProvider,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  updateProfile,
+  type Auth,
+} from 'firebase/auth'
 import { getFirestore, type Firestore } from 'firebase/firestore'
 
 const firebaseConfig = {
@@ -30,3 +37,15 @@ if (isFirebaseConfigured) {
 
 export { app, auth, db }
 export const googleProvider = new GoogleAuthProvider()
+
+export async function emailSignIn(email: string, password: string) {
+  if (!auth) throw new Error('Firebase not configured')
+  return signInWithEmailAndPassword(auth, email, password)
+}
+
+export async function emailSignUp(email: string, password: string, displayName: string) {
+  if (!auth) throw new Error('Firebase not configured')
+  const cred = await createUserWithEmailAndPassword(auth, email, password)
+  await updateProfile(cred.user, { displayName })
+  return cred
+}

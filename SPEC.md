@@ -197,6 +197,7 @@ A referee creates a match for "Oak Park HS vs Lincoln" and gets a Ref Code (e.g.
 ### MVP (Must-Have)
 
 #### Authentication
+- [ ] Sign in with Email/Password (Firebase Auth)
 - [ ] Sign in with Google (Firebase Auth)
 - [ ] Sign in with Phone Number (Firebase Auth)
 - [ ] Basic user profile (name, avatar)
