@@ -42,6 +42,7 @@ import {
 } from '@/services/demo'
 import { MAX_REFS_LIMIT, REF_ROLE_OPTIONS } from '@/types'
 import { refDisplayName } from '@/lib/refNames'
+import { useToast } from '@/contexts/ToastContext'
 
 export function MatchDetailPage() {
   const { matchId } = useParams<{ matchId: string }>()
@@ -49,6 +50,7 @@ export function MatchDetailPage() {
   const { user, isDemo } = useAuth()
   const savedIds = useSavedMatchIds()
   const navigate = useNavigate()
+  const { showToast } = useToast()
   const [error, setError] = useState<string | null>(null)
   const [joining, setJoining] = useState(false)
   const [saveSaving, setSaveSaving] = useState(false)
@@ -113,8 +115,10 @@ export function MatchDetailPage() {
       } else {
         await startMatch(matchId, user.uid)
       }
+      showToast('Event is live!')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to start match')
+      showToast('Failed to start event', 'error')
     }
   }
 
@@ -128,8 +132,10 @@ export function MatchDetailPage() {
       } else {
         await endMatch(matchId, user.uid)
       }
+      showToast('Event ended')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to end match')
+      showToast('Failed to end event', 'error')
     }
   }
 
@@ -143,9 +149,11 @@ export function MatchDetailPage() {
       } else {
         await deleteMatch(matchId, user.uid)
       }
+      showToast('Event deleted')
       navigate(-1)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete')
+      showToast('Failed to delete event', 'error')
     }
   }
 

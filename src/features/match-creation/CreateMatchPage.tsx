@@ -21,6 +21,7 @@ import { createMatch } from '@/services/matches'
 import { demoCreateMatch } from '@/services/demo'
 import { EVENT_PHOTO_PRESETS, compressImageFileToDataUrl } from '@/lib/eventPhotos'
 import { DEFAULT_MAX_REFS, MAX_REFS_LIMIT, type EventType } from '@/types'
+import { useToast } from '@/contexts/ToastContext'
 
 const EVENT_TYPE_OPTIONS: Array<{ value: EventType; label: string }> = [
   { value: 'sport', label: 'Sport' },
@@ -64,6 +65,7 @@ const SUBTYPE_OPTIONS: Record<EventType, Array<{ value: string; label: string }>
 export function CreateMatchPage() {
   const { user, isDemo } = useAuth()
   const navigate = useNavigate()
+  const { showToast } = useToast()
 
   const [title, setTitle] = useState('')
   const [location, setLocation] = useState('')
@@ -115,9 +117,12 @@ export function CreateMatchPage() {
       } else {
         matchId = await createMatch({ ...input, level: 'club' })
       }
-      navigate(`/match/${matchId}`)
+      showToast('Event created!')
+      navigate(`/match/${matchId}`, { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create match')
+      showToast('Failed to create event', 'error')
+    } finally {
       setSubmitting(false)
     }
   }
