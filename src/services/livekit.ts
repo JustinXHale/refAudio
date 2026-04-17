@@ -102,27 +102,23 @@ export async function connectToRoom(
     )
   }
 
-  if (callbacks.onTrackSubscribed) {
-    room.on(
-      RoomEvent.TrackSubscribed,
-      (track, publication, participant) => {
-        if (track.kind === Track.Kind.Audio) {
-          track.attach()
-        }
-        callbacks.onTrackSubscribed!(publication, participant)
-      },
-    )
-  }
+  room.on(
+    RoomEvent.TrackSubscribed,
+    (track, publication, participant) => {
+      if (track.kind === Track.Kind.Audio) {
+        track.attach()
+      }
+      callbacks.onTrackSubscribed?.(publication, participant)
+    },
+  )
 
-  if (callbacks.onTrackUnsubscribed) {
-    room.on(
-      RoomEvent.TrackUnsubscribed,
-      (track, publication, participant) => {
-        track.detach()
-        callbacks.onTrackUnsubscribed!(publication, participant)
-      },
-    )
-  }
+  room.on(
+    RoomEvent.TrackUnsubscribed,
+    (track, publication, participant) => {
+      track.detach()
+      callbacks.onTrackUnsubscribed?.(publication, participant)
+    },
+  )
 
   if (callbacks.onParticipantConnected) {
     room.on(RoomEvent.ParticipantConnected, callbacks.onParticipantConnected)
