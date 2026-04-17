@@ -49,7 +49,8 @@ export function HomePage() {
   const publicMatchesListenerError = usePublicMatchesListenerError()
 
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
-  const [includeArchivedMyEvents, setIncludeArchivedMyEvents] = useState(false)
+  /** When true, My Events hides ended and archived rows; when false (default), shows full history. */
+  const [hideEndedAndArchivedMyEvents, setHideEndedAndArchivedMyEvents] = useState(false)
   const [dateFilter, setDateFilter] = useState<string>('')
   const [eventTypeFilter, setEventTypeFilter] = useState<string>('')
   const [locationFilter, setLocationFilter] = useState<string>('')
@@ -69,9 +70,9 @@ export function HomePage() {
   }, [liveMatches, upcomingMatches, endedMatches])
 
   const myEventsVisible = useMemo(() => {
-    if (includeArchivedMyEvents) return myMatches
-    return myMatches.filter((m) => !m.archived)
-  }, [myMatches, includeArchivedMyEvents])
+    if (!hideEndedAndArchivedMyEvents) return myMatches
+    return myMatches.filter((m) => !m.archived && m.status !== 'ended')
+  }, [myMatches, hideEndedAndArchivedMyEvents])
 
   const uniqueDates = useMemo(() => {
     const dates = new Set<string>()
@@ -218,12 +219,12 @@ export function HomePage() {
             <FormControlLabel
               control={
                 <Switch
-                  checked={includeArchivedMyEvents}
-                  onChange={(_, v) => setIncludeArchivedMyEvents(v)}
+                  checked={hideEndedAndArchivedMyEvents}
+                  onChange={(_, v) => setHideEndedAndArchivedMyEvents(v)}
                   size="small"
                 />
               }
-              label="Include archived events"
+              label="Hide ended & archived"
             />
           </Box>
         )}
