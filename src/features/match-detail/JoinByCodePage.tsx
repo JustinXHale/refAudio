@@ -12,7 +12,7 @@ import MicOutlinedIcon from '@mui/icons-material/MicOutlined'
 import { useAuth } from '@/contexts/AuthContext'
 import { AppShell } from '@/components/layout/AppShell'
 import { Header } from '@/components/layout/Header'
-import { findMatchByCode } from '@/services/matches'
+import { findMatchByCode, joinMatchAsRef } from '@/services/matches'
 import { demoJoinByCode } from '@/services/demo'
 
 export function JoinByCodePage() {
@@ -62,7 +62,19 @@ export function JoinByCodePage() {
           setSearching(false)
           return
         }
-        navigate(`/match/${match.id}`)
+
+        const isRefCode = match.refCode === code.toUpperCase()
+        if (isRefCode) {
+          await joinMatchAsRef(match.id, user.uid)
+          if (match.status === 'live') {
+            navigate(`/match/${match.id}/room?role=referee`)
+          } else {
+            setInfo("You've been added to the waiting room. You'll auto-connect when the match starts.")
+            setTimeout(() => navigate(`/match/${match.id}`), 1500)
+          }
+        } else {
+          navigate(`/match/${match.id}`)
+        }
       }
     } catch {
       setError('Something went wrong. Please try again.')

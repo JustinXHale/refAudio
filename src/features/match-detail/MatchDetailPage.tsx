@@ -24,11 +24,13 @@ import { Header } from '@/components/layout/Header'
 import { useMatch } from '@/hooks/useMatches'
 import { useSavedMatchIds } from '@/hooks/useSavedMatchIds'
 import { toggleSaveMatch } from '@/services/savedMatches'
+import TextField from '@mui/material/TextField'
 import {
   startMatch,
   endMatch,
   deleteMatch,
   joinMatchAsSpectator,
+  joinMatchAsRef,
   setRefRole,
 } from '@/services/matches'
 import {
@@ -56,6 +58,8 @@ export function MatchDetailPage() {
   const [error, setError] = useState<string | null>(null)
   const [joining, setJoining] = useState(false)
   const [saveSaving, setSaveSaving] = useState(false)
+  const [refCodeInput, setRefCodeInput] = useState('')
+  const [joiningAsRef, setJoiningAsRef] = useState(false)
 
   if (!user && !loading) {
     return <Navigate to="/login" replace />
@@ -179,6 +183,32 @@ export function MatchDetailPage() {
       setError(err instanceof Error ? err.message : 'Failed to join')
     }
     setJoining(false)
+  }
+
+  const handleJoinWithRefCode = async () => {
+    if (!user || !matchId) return
+    const code = refCodeInput.trim().toUpperCase()
+    if (code.length !== 6) {
+      setError('Ref code must be 6 characters')
+      return
+    }
+    if (code !== match.refCode) {
+      setError('Invalid ref code')
+      return
+    }
+    setJoiningAsRef(true)
+    setError(null)
+    try {
+      if (!isDemo) {
+        await joinMatchAsRef(matchId, user.uid)
+      }
+      showToast('Joined as referee')
+      navigate(`/match/${matchId}/room?role=referee`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to join as ref')
+    } finally {
+      setJoiningAsRef(false)
+    }
   }
 
   const handleEnterRoom = () => {
@@ -571,6 +601,33 @@ export function MatchDetailPage() {
               <Button variant="contained" color="secondary" size="large" fullWidth onClick={handleJoinAsSpectator} disabled={joining}>
                 {joining ? 'Joining...' : 'Listen as Spectator'}
               </Button>
+            )}
+
+            {user && !isRef && !isInWaitingRoom && match.status === 'live' && (
+              <Card variant="outlined" sx={{ bgcolor: 'background.paper' }}>
+                <CardContent>
+                  <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1.5 }}>
+                    Have a ref code?
+                  </Typography>
+                  <Stack direction="row" spacing={1}>
+                    <TextField
+                      size="small"
+                      placeholder="ABC123"
+                      value={refCodeInput}
+                      onChange={(e) => setRefCodeInput(e.target.value.toUpperCase().slice(0, 6))}
+                      inputProps={{ maxLength: 6, style: { textTransform: 'uppercase', letterSpacing: 2, fontFamily: 'monospace' } }}
+                      sx={{ flex: 1 }}
+                    />
+                    <Button
+                      variant="contained"
+                      onClick={handleJoinWithRefCode}
+                      disabled={refCodeInput.length !== 6 || joiningAsRef}
+                    >
+                      {joiningAsRef ? 'Joining...' : 'Join as Ref'}
+                    </Button>
+                  </Stack>
+                </CardContent>
+              </Card>
             )}
 
             {user && !isRef && !isInWaitingRoom && match.status === 'upcoming' && !match.isPrivate && (

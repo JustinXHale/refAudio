@@ -117,7 +117,7 @@ export function LoginPage() {
             </Typography>
           </Stack>
           <Typography variant="body2" color="text.secondary">
-            {isSignUp ? 'Create an account to get started' : 'Sign in to create and join events'} &middot; v0.1
+            {isSignUp ? 'Create an account to get started' : 'Sign in to create and join events'} &middot; v0.2
           </Typography>
         </Stack>
 
