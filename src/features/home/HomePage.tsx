@@ -126,7 +126,7 @@ export function HomePage() {
                 </Typography>
               </Stack>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                Referee communication for everyone &middot; v0.2
+                Referee communication for everyone &middot; v0.3
               </Typography>
             </Box>
             <ToggleButtonGroup

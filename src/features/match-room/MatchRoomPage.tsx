@@ -65,6 +65,7 @@ export function MatchRoomPage() {
   >('connecting')
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [remoteCount, setRemoteCount] = useState(0)
+  const [speakingMap, setSpeakingMap] = useState<Record<string, number>>({})
 
   const roomRef = useRef<Room | null>(null)
   const connectingRef = useRef(false)
@@ -125,6 +126,13 @@ export function MatchRoomPage() {
       },
       onParticipantDisconnected: () => {
         setRemoteCount((c) => Math.max(0, c - 1))
+      },
+      onActiveSpeakersChanged: (speakers) => {
+        const map: Record<string, number> = {}
+        for (const s of speakers) {
+          if (s.isSpeaking) map[s.identity] = s.audioLevel
+        }
+        setSpeakingMap(map)
       },
     })
       .then((room) => {
@@ -643,55 +651,70 @@ export function MatchRoomPage() {
         >
           <Box sx={{ textAlign: 'center' }}>
             {connectionState === 'connected' ? (
-              <>
-                <Stack
-                  direction="row"
-                  justifyContent="center"
-                  spacing={0.5}
-                  sx={{ mb: 3 }}
-                >
-                  {[...Array(5)].map((_, i) => (
-                    <Box
-                      key={i}
-                      sx={{
-                        width: 6,
-                        height: `${20 + (i % 3) * 10}px`,
-                        bgcolor: isMuted ? 'error.main' : 'success.main',
-                        borderRadius: 1,
-                        animation: isMuted
-                          ? 'none'
-                          : 'pulse 0.8s ease-in-out infinite',
-                        animationDelay: `${i * 0.15}s`,
-                        opacity: isMuted ? 0.4 : undefined,
-                        '@keyframes pulse': {
-                          '0%, 100%': { opacity: 0.4 },
-                          '50%': { opacity: 1 },
-                        },
-                        '@media (prefers-reduced-motion: reduce)': {
-                          animation: 'none',
-                        },
-                      }}
-                    />
-                  ))}
-                </Stack>
-                <Typography variant="body2" color="grey.400">
-                  {isRef
-                    ? isMuted
-                      ? 'Your mic is muted'
-                      : 'Your mic is live'
-                    : 'Listening to referee comms'}
-                </Typography>
-                {!isDemo && remoteCount > 0 && (
-                  <Typography
-                    variant="caption"
-                    color="grey.600"
-                    sx={{ mt: 1, display: 'block' }}
-                  >
-                    {remoteCount} other participant
-                    {remoteCount !== 1 ? 's' : ''} in room
-                  </Typography>
-                )}
-              </>
+              (() => {
+                const anyoneSpeaking = Object.keys(speakingMap).length > 0
+                const maxLevel = anyoneSpeaking
+                  ? Math.max(...Object.values(speakingMap))
+                  : 0
+                return (
+                  <>
+                    <Stack
+                      direction="row"
+                      justifyContent="center"
+                      spacing={0.5}
+                      sx={{ mb: 3 }}
+                    >
+                      {[...Array(5)].map((_, i) => {
+                        const barBaseHeight = 20 + (i % 3) * 10
+                        const active = anyoneSpeaking && !isMuted
+                        return (
+                          <Box
+                            key={i}
+                            sx={{
+                              width: 6,
+                              height: active
+                                ? `${Math.max(8, barBaseHeight * maxLevel)}px`
+                                : `${barBaseHeight}px`,
+                              bgcolor: isMuted
+                                ? 'error.main'
+                                : active
+                                  ? 'success.main'
+                                  : 'grey.600',
+                              borderRadius: 1,
+                              transition: 'height 0.15s ease, background-color 0.2s',
+                              opacity: isMuted ? 0.4 : active ? 1 : 0.3,
+                              '@media (prefers-reduced-motion: reduce)': {
+                                transition: 'none',
+                              },
+                            }}
+                          />
+                        )
+                      })}
+                    </Stack>
+                    <Typography variant="body2" color="grey.400">
+                      {isRef
+                        ? isMuted
+                          ? 'Your mic is muted'
+                          : anyoneSpeaking
+                            ? 'Comms active'
+                            : 'Your mic is live'
+                        : anyoneSpeaking
+                          ? 'Referee comms active'
+                          : 'Listening — comms quiet'}
+                    </Typography>
+                    {!isDemo && remoteCount > 0 && (
+                      <Typography
+                        variant="caption"
+                        color="grey.600"
+                        sx={{ mt: 1, display: 'block' }}
+                      >
+                        {remoteCount} other participant
+                        {remoteCount !== 1 ? 's' : ''} in room
+                      </Typography>
+                    )}
+                  </>
+                )
+              })()
             ) : connectionState === 'error' ? (
               <Typography variant="body2" color="error.light">
                 Connection failed
@@ -740,36 +763,68 @@ export function MatchRoomPage() {
                 Waiting for refs...
               </Typography>
             ) : (
-              refs.map((p) => (
-                <Stack
-                  key={p.id}
-                  direction="row"
-                  alignItems="center"
-                  spacing={1}
-                  sx={{
-                    bgcolor: 'grey.800',
-                    borderRadius: 999,
-                    px: 1.5,
-                    py: 0.75,
-                  }}
-                >
-                  <Box
+              refs.map((p) => {
+                const audioLevel = speakingMap[p.userId] ?? 0
+                const isSpeaking = audioLevel > 0
+                const muted = !!p.isMutedByAdmin
+                return (
+                  <Stack
+                    key={p.id}
+                    direction="row"
+                    alignItems="center"
+                    spacing={1}
                     sx={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: '50%',
-                      bgcolor: p.isMutedByAdmin
-                        ? 'error.main'
-                        : p.isConnected
-                          ? 'success.main'
-                          : 'error.main',
+                      bgcolor: 'grey.800',
+                      borderRadius: 999,
+                      px: 1.5,
+                      py: 0.75,
+                      transition: 'box-shadow 0.2s',
+                      boxShadow: isSpeaking && !muted
+                        ? '0 0 0 2px rgba(76,175,80,0.6)'
+                        : 'none',
                     }}
-                  />
-                  <Typography variant="body2" color="grey.300">
-                    {p.displayName}
-                  </Typography>
-                </Stack>
-              ))
+                  >
+                    {isSpeaking && !muted ? (
+                      <Stack
+                        direction="row"
+                        alignItems="center"
+                        spacing="2px"
+                        sx={{ width: 12, height: 14, flexShrink: 0 }}
+                      >
+                        {[0, 1, 2].map((i) => (
+                          <Box
+                            key={i}
+                            sx={{
+                              width: 3,
+                              borderRadius: 0.5,
+                              bgcolor: 'success.main',
+                              height: `${Math.max(4, Math.min(14, audioLevel * 14 * (0.6 + Math.random() * 0.4)))}px`,
+                              transition: 'height 0.1s ease',
+                            }}
+                          />
+                        ))}
+                      </Stack>
+                    ) : (
+                      <Box
+                        sx={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: '50%',
+                          bgcolor: muted
+                            ? 'error.main'
+                            : p.isConnected
+                              ? 'success.main'
+                              : 'error.main',
+                          flexShrink: 0,
+                        }}
+                      />
+                    )}
+                    <Typography variant="body2" color={isSpeaking && !muted ? 'success.light' : 'grey.300'}>
+                      {p.displayName}
+                    </Typography>
+                  </Stack>
+                )
+              })
             )}
           </Stack>
           {match.allowSpectators && (

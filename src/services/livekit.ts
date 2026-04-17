@@ -11,6 +11,7 @@ import {
   RoomEvent,
   Track,
   ConnectionState,
+  Participant,
   type RemoteTrackPublication,
   type RemoteParticipant,
   type LocalTrackPublication,
@@ -65,6 +66,7 @@ export interface RoomCallbacks {
   ) => void
   onParticipantConnected: (participant: RemoteParticipant) => void
   onParticipantDisconnected: (participant: RemoteParticipant) => void
+  onActiveSpeakersChanged: (speakers: Participant[]) => void
 }
 
 export async function connectToRoom(
@@ -129,6 +131,13 @@ export async function connectToRoom(
     room.on(
       RoomEvent.ParticipantDisconnected,
       callbacks.onParticipantDisconnected,
+    )
+  }
+
+  if (callbacks.onActiveSpeakersChanged) {
+    room.on(
+      RoomEvent.ActiveSpeakersChanged,
+      callbacks.onActiveSpeakersChanged,
     )
   }
 
