@@ -110,7 +110,8 @@ A referee creates a match for "Oak Park HS vs Lincoln" and gets a Ref Code (e.g.
 
 | Constraint | Value | Rationale |
 |------------|-------|-----------|
-| Max active refs per match | 10 (default 5) | Configurable by organizer. Default covers Ref + 2 ARs + TMO + reserve |
+| Max active refs per match | 3 (free tier), 10 (paid tier) | Free tier default. Paid tier allows full officiating crews. |
+| Session time limit | 100 minutes | Counted from match start. Protects against idle sessions burning resources. |
 | Max spectators per match | 100 | Start conservative, scale based on testing |
 | Audio latency target | <300ms | Acceptable for real-time officiating |
 | Minimum supported iOS | 14.0 | WebRTC support |
@@ -166,7 +167,7 @@ A referee creates a match for "Oak Park HS vs Lincoln" and gets a Ref Code (e.g.
 - Leave match
 
 **Limitations:**
-- Max 5 per match
+- Max 3 per match (free tier)
 - Requires Ref Code — cannot self-promote from spectator to ref
 
 ### 4. Spectator (Listener)
@@ -418,7 +419,7 @@ interface Match {
   // Participants
   creatorId: string;             // User ID of creator
   adminIds: string[];            // User IDs with admin rights (includes creator)
-  activeRefs: string[];          // Array of ref User IDs (max 5)
+  activeRefs: string[];          // Array of ref User IDs (max 3 free tier)
   waitingRoom: string[];         // Refs who pre-joined before match started
   notifyList: string[];          // Users who want notification when match goes live
   spectatorCount: number;        // Real-time spectator count
@@ -622,7 +623,7 @@ User → Flutter App → Firestore query:
   scheduledTime: Timestamp;
   isPrivate: boolean;
   allowSpectators: boolean;
-  maxRefs: number;             // 1–10, default 5
+  maxRefs: number;             // 1–3 (free tier), 1–10 (paid); default 3
 }
 ```
 

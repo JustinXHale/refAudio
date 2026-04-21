@@ -48,7 +48,7 @@ import {
   demoUpdateMaxRefs,
   demoSetRefRole,
 } from '@/services/demo'
-import { MAX_REFS_LIMIT, REF_ROLE_OPTIONS, type Match } from '@/types'
+import { FREE_TIER_MAX_REFS, REF_ROLE_OPTIONS, type Match } from '@/types'
 import { refDisplayName } from '@/lib/refNames'
 import { useToast } from '@/contexts/ToastContext'
 
@@ -238,7 +238,7 @@ export function MatchDetailPage() {
     setError(null)
     try {
       if (!isDemo) {
-        await joinMatchAsRef(matchId, user.uid)
+        await joinMatchAsRef(matchId, user.uid, user.displayName || profile?.displayName || 'Referee')
       }
       showToast('Joined as referee')
       navigate(`/match/${matchId}/room?role=referee`)
@@ -300,6 +300,54 @@ export function MatchDetailPage() {
     demoUpdateMaxRefs(matchId, user.uid, newMax)
   }
 
+  const appBase = window.location.origin + (import.meta.env.BASE_URL === '/' ? '' : import.meta.env.BASE_URL.replace(/\/$/, ''))
+
+  const shareOrCopy = async (data: ShareData, fallbackText: string, successMsg: string) => {
+    if (navigator.share) {
+      try {
+        await navigator.share(data)
+        return
+      } catch (e) {
+        if (e instanceof Error && e.name === 'AbortError') return
+      }
+    }
+    await navigator.clipboard.writeText(fallbackText)
+    showToast(successMsg)
+  }
+
+  const handleShareRefCode = () =>
+    shareOrCopy(
+      {
+        title: `Join ${match.title} as a Referee`,
+        text: `Join "${match.title}" as a referee. Use code: ${match.refCode}`,
+        url: `${appBase}/join`,
+      },
+      `Join "${match.title}" as a referee. Use code: ${match.refCode} at ${appBase}/join`,
+      'Ref invite copied to clipboard',
+    )
+
+  const handleShareSpectatorCode = () =>
+    shareOrCopy(
+      {
+        title: `Listen in on ${match.title}`,
+        text: `Listen in on "${match.title}" live. Use spectator code: ${match.spectatorCode}`,
+        url: `${appBase}/join`,
+      },
+      `Listen in on "${match.title}" live. Use spectator code: ${match.spectatorCode} at ${appBase}/join`,
+      'Spectator invite copied to clipboard',
+    )
+
+  const handleSharePublicEvent = () =>
+    shareOrCopy(
+      {
+        title: match.title,
+        text: `Listen in on "${match.title}" live — no code needed!`,
+        url: `${appBase}/match/${match.id}`,
+      },
+      `${appBase}/match/${match.id}`,
+      'Event link copied to clipboard',
+    )
+
   const statusChip = {
     upcoming: { label: 'UPCOMING', color: 'info' as const },
     live: { label: 'LIVE', color: 'error' as const },
@@ -330,15 +378,13 @@ export function MatchDetailPage() {
           {error && <Alert severity="error">{error}</Alert>}
 
           <Card elevation={2} sx={{ overflow: 'hidden' }}>
-            {match.eventPhotoUrl && (
-              <CardMedia
-                component="img"
-                height="200"
-                image={match.eventPhotoUrl}
-                alt={`${match.title} event photo`}
-                sx={{ objectFit: 'cover' }}
-              />
-            )}
+            <CardMedia
+              component="img"
+              height="200"
+              image={match.eventPhotoUrl || '/favicon.png'}
+              alt={`${match.title} event photo`}
+              sx={{ objectFit: match.eventPhotoUrl ? 'cover' : 'contain', bgcolor: 'action.hover', p: match.eventPhotoUrl ? 0 : 3 }}
+            />
             <CardContent>
               <Stack direction="row" flexWrap="wrap" gap={1} sx={{ mb: 2 }}>
                 <Chip size="small" label={s.label} color={s.color} variant={match.status === 'live' ? 'filled' : 'outlined'} />
@@ -403,11 +449,11 @@ export function MatchDetailPage() {
                     <strong>{match.activeRefs.length}</strong>
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    Spectators (final): <strong>{match.spectatorCount}</strong>
+                    Spectators (final): <strong>{Math.max(0, match.spectatorCount ?? 0)}</strong>
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     Peak concurrent listeners:{' '}
-                    <strong>{match.peakSpectators ?? match.spectatorCount}</strong>
+                    <strong>{Math.max(0, match.peakSpectators ?? match.spectatorCount ?? 0)}</strong>
                   </Typography>
                 </Stack>
               </CardContent>
@@ -435,9 +481,14 @@ export function MatchDetailPage() {
                       <Typography variant="h5" fontFamily="monospace" fontWeight={700} letterSpacing={4}>
                         {match.refCode}
                       </Typography>
-                      <Button size="small" onClick={() => { navigator.clipboard.writeText(match.refCode); showToast('Ref code copied') }}>
-                        Copy
-                      </Button>
+                      <Stack direction="row" spacing={0.5}>
+                        <Button size="small" onClick={() => { navigator.clipboard.writeText(match.refCode); showToast('Ref code copied') }}>
+                          Copy
+                        </Button>
+                        <Button size="small" variant="contained" onClick={handleShareRefCode}>
+                          Share
+                        </Button>
+                      </Stack>
                     </Stack>
                   </Box>
 
@@ -458,11 +509,29 @@ export function MatchDetailPage() {
                         <Typography variant="h5" fontFamily="monospace" fontWeight={700} letterSpacing={4}>
                           {match.spectatorCode}
                         </Typography>
-                        <Button size="small" color="warning" onClick={() => { navigator.clipboard.writeText(match.spectatorCode || ''); showToast('Spectator code copied') }}>
-                          Copy
-                        </Button>
+                        <Stack direction="row" spacing={0.5}>
+                          <Button size="small" color="warning" onClick={() => { navigator.clipboard.writeText(match.spectatorCode || ''); showToast('Spectator code copied') }}>
+                            Copy
+                          </Button>
+                          <Button size="small" color="warning" variant="contained" onClick={handleShareSpectatorCode}>
+                            Share
+                          </Button>
+                        </Stack>
                       </Stack>
                     </Box>
+                  )}
+
+                  {isAdmin && !match.isPrivate && match.allowSpectators && (
+                    <Stack direction="row" alignItems="center" justifyContent="space-between">
+                      <Box>
+                        <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
+                          Spectator Link — share so people can listen in
+                        </Typography>
+                        <Button size="small" variant="outlined" onClick={handleSharePublicEvent}>
+                          Share Event Link
+                        </Button>
+                      </Box>
+                    </Stack>
                   )}
 
                   {isAdmin && match.status === 'upcoming' && (
@@ -485,7 +554,7 @@ export function MatchDetailPage() {
                         <IconButton
                           size="small"
                           onClick={() => handleMaxRefsChange(match.maxRefs + 1)}
-                          disabled={match.maxRefs >= MAX_REFS_LIMIT}
+                          disabled={match.maxRefs >= FREE_TIER_MAX_REFS}
                           aria-label="Increase max referees"
                         >
                           +
@@ -518,7 +587,7 @@ export function MatchDetailPage() {
                   </Typography>
                 ) : (
                   match.activeRefs.map((refId, i) => {
-                    const name = refDisplayName(refId, i, user?.uid)
+                    const name = refId === user?.uid ? 'You' : (match.refNames?.[refId] || refDisplayName(refId, i, user?.uid))
                     const assignedRole = match.refRoles?.[refId] || ''
                     return (
                       <Stack

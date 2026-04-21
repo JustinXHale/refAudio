@@ -65,15 +65,13 @@ export function MatchCard({ match, saved, compact }: MatchCardProps) {
         onClick={() => navigate(`/match/${match.id}`)}
         sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'stretch' }}
       >
-        {match.eventPhotoUrl && (
-          <CardMedia
-            component="img"
-            height={compact ? 100 : 140}
-            image={match.eventPhotoUrl}
-            alt={`${match.title} event photo`}
-            sx={{ objectFit: 'cover' }}
-          />
-        )}
+        <CardMedia
+          component="img"
+          height={compact ? 100 : 140}
+          image={match.eventPhotoUrl || '/favicon.png'}
+          alt={`${match.title} event photo`}
+          sx={{ objectFit: match.eventPhotoUrl ? 'cover' : 'contain', bgcolor: 'action.hover', p: match.eventPhotoUrl ? 0 : 2 }}
+        />
         <CardContent sx={{ p: compact ? 1.25 : 2, flex: 1 }}>
           <Stack direction="row" spacing={compact ? 1 : 2} alignItems="flex-start" justifyContent="space-between">
             <Box sx={{ minWidth: 0, flex: 1 }}>

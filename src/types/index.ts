@@ -82,6 +82,8 @@ export interface Match {
 
   /** Creator-assigned role labels for each ref (userId → role string). */
   refRoles?: Record<string, string>
+  /** Display names for each ref, written on join so event detail page can show real names. */
+  refNames?: Record<string, string>
 
   roomId: string
   roomName: string
@@ -104,6 +106,11 @@ export interface Participant {
   audioQuality?: 'good' | 'poor' | 'disconnected'
 }
 
-export const DEFAULT_MAX_REFS = 5
+export const DEFAULT_MAX_REFS = 3
+export const FREE_TIER_MAX_REFS = 3
 export const MAX_REFS_LIMIT = 10
 export const MAX_SPECTATORS = 100
+export const FREE_TIER_MAX_SPECTATORS = 12
+/** Total LiveKit concurrent participant ceiling per room (refs + spectators). */
+export const LIVEKIT_ROOM_CAPACITY = 100
+export const SESSION_LIMIT_MINUTES = 100

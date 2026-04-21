@@ -49,6 +49,8 @@ export function HomePage() {
   const publicMatchesListenerError = usePublicMatchesListenerError()
 
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
+  /** When true, the public Events tab hides ended events (default on). */
+  const [hideEndedPublicEvents, setHideEndedPublicEvents] = useState(true)
   /** When true, My Events hides ended and archived rows; when false (default), shows full history. */
   const [hideEndedAndArchivedMyEvents, setHideEndedAndArchivedMyEvents] = useState(false)
   const [dateFilter, setDateFilter] = useState<string>('')
@@ -104,6 +106,8 @@ export function HomePage() {
 
   const filteredPublicEvents = useMemo(() => {
     return publicEvents.filter((match) => {
+      if (hideEndedPublicEvents && match.status === 'ended') return false
+
       const matchDate =
         typeof match.scheduledTime === 'object' && 'toDate' in match.scheduledTime
           ? (match.scheduledTime as { toDate: () => Date }).toDate()
@@ -115,11 +119,8 @@ export function HomePage() {
 
       return true
     })
-  }, [publicEvents, dateFilter, eventTypeFilter, locationFilter])
+  }, [publicEvents, hideEndedPublicEvents, dateFilter, eventTypeFilter, locationFilter])
 
-  const showFilters =
-    tab === 'events' &&
-    (uniqueDates.length > 1 || uniqueEventTypes.length > 1 || uniqueLocations.length > 1)
   const hasActiveFilters = dateFilter || eventTypeFilter || locationFilter
 
   const matches = tab === 'events' ? filteredPublicEvents : myEventsVisible
@@ -215,25 +216,25 @@ export function HomePage() {
         </Tabs>
 
         {tab === 'my-events' && (
-          <Box sx={{ px: 2, pt: 1.5 }}>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={hideEndedAndArchivedMyEvents}
-                  onChange={(_, v) => setHideEndedAndArchivedMyEvents(v)}
-                  size="small"
-                />
-              }
-              label="Hide ended & archived"
-            />
-          </Box>
+          <Stack sx={{ px: 2, pt: 2, pb: 1 }}>
+            <Stack direction="row" flexWrap="wrap" gap={1} alignItems="center">
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={hideEndedAndArchivedMyEvents}
+                    onChange={(_, v) => setHideEndedAndArchivedMyEvents(v)}
+                    size="small"
+                  />
+                }
+                label={<Typography variant="body2">Hide ended & archived</Typography>}
+                sx={{ ml: 'auto', mr: 0 }}
+              />
+            </Stack>
+          </Stack>
         )}
 
-        {showFilters && (
-          <Stack spacing={1.5} sx={{ px: 2, pt: 2, pb: 1 }}>
-            <Typography variant="body2" color="text.secondary" fontWeight={600}>
-              Filters
-            </Typography>
+        {tab === 'events' && (
+          <Stack sx={{ px: 2, pt: 2, pb: 1 }}>
             <Stack direction="row" flexWrap="wrap" gap={1} alignItems="center">
               {uniqueDates.length > 1 && (
                 <FormControl size="small" sx={{ minWidth: 120 }}>
@@ -298,6 +299,17 @@ export function HomePage() {
                   Clear all
                 </Button>
               )}
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={hideEndedPublicEvents}
+                    onChange={(_, v) => setHideEndedPublicEvents(v)}
+                    size="small"
+                  />
+                }
+                label={<Typography variant="body2">Hide ended</Typography>}
+                sx={{ ml: 'auto', mr: 0 }}
+              />
             </Stack>
           </Stack>
         )}
@@ -322,16 +334,20 @@ export function HomePage() {
               <Typography variant="body1" fontWeight={600} color="text.secondary">
                 {tab === 'events' && hasActiveFilters
                   ? 'No events match your filters'
-                  : tab === 'my-events'
-                    ? 'No events yet'
-                    : 'No public events'}
+                  : tab === 'events' && hideEndedPublicEvents
+                    ? 'No live or upcoming events'
+                    : tab === 'my-events'
+                      ? 'No events yet'
+                      : 'No public events'}
               </Typography>
               <Typography variant="body2" color="text.disabled">
                 {tab === 'events' && hasActiveFilters
                   ? 'Try adjusting your filters'
-                  : tab === 'my-events'
-                    ? 'Create or join a match, or save one from the Events list'
-                    : 'Check back later or create an event'}
+                  : tab === 'events' && hideEndedPublicEvents
+                    ? 'Turn off "Hide ended events" to see past events'
+                    : tab === 'my-events'
+                      ? 'Create or join a match, or save one from the Events list'
+                      : 'Check back later or create an event'}
               </Typography>
             </Stack>
           ) : viewMode === 'grid' ? (

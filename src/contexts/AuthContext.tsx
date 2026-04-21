@@ -22,10 +22,13 @@ interface AuthState {
   loading: boolean
   firebaseReady: boolean
   isDemo: boolean
+  isSuperAdmin: boolean
+  /** True if the user is on the Pro paid plan (or is a super admin). */
+  isPro: boolean
   signInWithGoogle: () => Promise<void>
   signInWithEmail: (email: string, password: string) => Promise<void>
   signUpWithEmail: (email: string, password: string, displayName: string) => Promise<void>
-  signInDemo: () => void
+  signInDemo: () => Promise<void>
   signOut: () => Promise<void>
   refreshProfile: () => Promise<void>
 }
@@ -44,6 +47,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(isFirebaseConfigured)
   const [isDemo, setIsDemo] = useState(false)
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false)
+  const [isPro, setIsPro] = useState(false)
 
   useEffect(() => {
     if (!auth) {
@@ -57,7 +62,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (firebaseUser && db) {
         try {
           const profileRef = doc(db, 'users', firebaseUser.uid)
-          const snap = await getDoc(profileRef)
+          const superAdminRef = doc(db, 'config', 'superAdmins')
+          const proUsersRef = doc(db, 'config', 'proUsers')
+          const [snap, superAdminSnap, proUsersSnap] = await Promise.all([
+            getDoc(profileRef),
+            getDoc(superAdminRef),
+            getDoc(proUsersRef),
+          ])
 
           if (snap.exists()) {
             setProfile({ id: snap.id, ...snap.data() } as UserProfile)
@@ -75,6 +86,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               ...newProfile,
             } as unknown as UserProfile)
           }
+
+          const email = firebaseUser.email
+          const superAdminEmails: string[] = superAdminSnap.exists()
+            ? (superAdminSnap.data()?.emails as string[] | undefined) ?? []
+            : []
+          const proEmails: string[] = proUsersSnap.exists()
+            ? (proUsersSnap.data()?.emails as string[] | undefined) ?? []
+            : []
+
+          const isAdmin = !!email && superAdminEmails.includes(email)
+          setIsSuperAdmin(isAdmin)
+          // Super admins implicitly have Pro
+          setIsPro(isAdmin || (!!email && proEmails.includes(email)))
         } catch {
           setProfile({
             id: firebaseUser.uid,
@@ -82,9 +106,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             email: firebaseUser.email || undefined,
             photoURL: firebaseUser.photoURL || undefined,
           } as unknown as UserProfile)
+          setIsSuperAdmin(false)
+          setIsPro(false)
         }
       } else {
         setProfile(null)
+        setIsSuperAdmin(false)
+        setIsPro(false)
       }
 
       setLoading(false)
@@ -106,7 +134,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await emailSignUp(email, password, displayName)
   }
 
-  const signInDemo = () => {
+  const signInDemo = async () => {
+    // Sign out any active Firebase session first so onAuthStateChanged
+    // doesn't race and snap the user back to their real account.
+    if (auth) {
+      try { await firebaseSignOut(auth) } catch { /* ignore */ }
+    }
     setIsDemo(true)
     setUser(DEMO_USER)
     setProfile({
@@ -121,11 +154,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsDemo(false)
       setUser(null)
       setProfile(null)
+      setIsSuperAdmin(false)
+      setIsPro(false)
       return
     }
     if (!auth) return
     await firebaseSignOut(auth)
     setProfile(null)
+    setIsSuperAdmin(false)
+    setIsPro(false)
   }
 
   const refreshProfile = useCallback(async () => {
@@ -150,6 +187,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loading,
         firebaseReady: isFirebaseConfigured,
         isDemo,
+        isSuperAdmin,
+        isPro,
         signInWithGoogle,
         signInWithEmail,
         signUpWithEmail,

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Navigate } from 'react-router-dom'
 import Box from '@mui/material/Box'
 import Container from '@mui/material/Container'
 import Typography from '@mui/material/Typography'
@@ -13,7 +13,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { Header } from '@/components/layout/Header'
 
 export function LoginPage() {
-  const { signInWithGoogle, signInWithEmail, signUpWithEmail, signInDemo, firebaseReady, loading } = useAuth()
+  const { signInWithGoogle, signInWithEmail, signUpWithEmail, signInDemo, firebaseReady, loading, user, isDemo } = useAuth()
   const [error, setError] = useState<string | null>(null)
   const [mode, setMode] = useState<'sign-in' | 'sign-up'>('sign-in')
   const [email, setEmail] = useState('')
@@ -21,6 +21,11 @@ export function LoginPage() {
   const [displayName, setDisplayName] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const navigate = useNavigate()
+
+  // Already authenticated — no reason to be on the login page
+  if ((user || isDemo) && !loading) {
+    return <Navigate to="/" replace />
+  }
 
   const resetForm = () => {
     setError(null)

@@ -44,6 +44,7 @@ export interface CreateMatchInput {
   isPrivate: boolean
   allowSpectators: boolean
   maxRefs: number
+  maxSpectators?: number
   creatorId: string
   creatorDisplayName: string
 }
@@ -76,6 +77,7 @@ export async function createMatch(input: CreateMatchInput): Promise<string> {
     creatorDisplayName: input.creatorDisplayName,
     adminIds: [input.creatorId],
     activeRefs: [input.creatorId],
+    refNames: { [input.creatorId]: input.creatorDisplayName },
     waitingRoom: [],
     notifyList: [],
     spectatorCount: 0,
@@ -84,7 +86,7 @@ export async function createMatch(input: CreateMatchInput): Promise<string> {
     roomId: '',
     roomName: '',
     maxRefs: input.maxRefs || DEFAULT_MAX_REFS,
-    maxSpectators: 100,
+    maxSpectators: input.maxSpectators ?? 100,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   }
@@ -373,23 +375,28 @@ export async function toggleNotify(matchId: string, userId: string): Promise<boo
   return !on
 }
 
-export async function joinMatchAsRef(matchId: string, userId: string) {
+export async function joinMatchAsRef(matchId: string, userId: string, displayName?: string) {
   const database = requireDb()
   const match = await getMatch(matchId)
   if (!match) throw new Error('Match not found')
   if (match.activeRefs.length >= match.maxRefs) {
-    throw new Error('Match is full (max 5 referees)')
+    throw new Error(`Match is full (max ${match.maxRefs} referee${match.maxRefs !== 1 ? 's' : ''} — free tier)`)
   }
   if (match.activeRefs.includes(userId)) return
 
+  const name = displayName || 'Referee'
+  const nameKey = `refNames.${userId}`
+
   await updateDoc(doc(database, 'matches', matchId), {
     activeRefs: arrayUnion(userId),
+    [nameKey]: name,
     updatedAt: serverTimestamp(),
   })
 
   await addDoc(collection(database, 'matches', matchId, 'participants'), {
     matchId,
     userId,
+    displayName: name,
     role: 'referee' as ParticipantRole,
     joinedAt: serverTimestamp(),
     isConnected: true,
@@ -488,13 +495,13 @@ export async function ensureRefParticipant(
   if (!snap.empty) {
     const d = snap.docs[0]
     const existing = d.data() as Participant
-    if (
-      existing.role === 'spectator' &&
-      (role === 'referee' || role === 'creator')
-    ) {
+    const needsRoleUpdate =
+      existing.role === 'spectator' && (role === 'referee' || role === 'creator')
+    const needsNameUpdate = !existing.displayName && displayName
+    if (needsRoleUpdate || needsNameUpdate) {
       await updateDoc(d.ref, {
-        role,
-        displayName,
+        ...(needsRoleUpdate ? { role } : {}),
+        ...(displayName ? { displayName } : {}),
       })
     }
     return
@@ -798,6 +805,44 @@ export function subscribeToUserMatches(
   return () => {
     unsubs.forEach((u) => u())
   }
+}
+
+export async function endMatchAsAdmin(matchId: string): Promise<void> {
+  await withTimeout(
+    updateDoc(doc(requireDb(), 'matches', matchId), {
+      status: 'ended',
+      endedAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    }),
+    10000,
+    'endMatchAsAdmin',
+  )
+}
+
+export async function deleteMatchAsAdmin(matchId: string): Promise<void> {
+  await withTimeout(deleteDoc(doc(requireDb(), 'matches', matchId)), 10000, 'deleteMatchAsAdmin:deleteDoc')
+}
+
+export async function archiveMatchAsAdmin(matchId: string): Promise<void> {
+  await withTimeout(
+    updateDoc(doc(requireDb(), 'matches', matchId), {
+      archived: true,
+      archivedAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    }),
+    10000,
+    'archiveMatchAsAdmin',
+  )
+}
+
+export async function getAllMatchesForAdmin(): Promise<Match[]> {
+  const database = requireDb()
+  const snap = await withTimeout(
+    getDocs(collection(database, 'matches')),
+    15000,
+    'getAllMatchesForAdmin',
+  )
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Match)
 }
 
 export async function toggleSavedMatchForUser(

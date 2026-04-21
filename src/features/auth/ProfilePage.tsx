@@ -19,7 +19,7 @@ import { Header } from '@/components/layout/Header'
 import { db } from '@/lib/firebase'
 
 export function ProfilePage() {
-  const { user, profile, signOut, refreshProfile, isDemo } = useAuth()
+  const { user, profile, signOut, refreshProfile, isDemo, isSuperAdmin } = useAuth()
   const navigate = useNavigate()
   const [displayName, setDisplayName] = useState('')
   const [showEmailPublic, setShowEmailPublic] = useState(false)
@@ -140,6 +140,27 @@ export function ProfilePage() {
             </Stack>
           </CardContent>
         </Card>
+
+        {isSuperAdmin && (
+          <Card elevation={2} sx={{ mt: 2, border: 2, borderColor: 'warning.main' }}>
+            <CardContent>
+              <Typography variant="subtitle2" fontWeight={700} color="warning.dark" gutterBottom>
+                Super Admin
+              </Typography>
+              <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1.5 }}>
+                You have platform-wide admin access. Handle with care.
+              </Typography>
+              <Button
+                fullWidth
+                variant="contained"
+                color="warning"
+                onClick={() => navigate('/admin')}
+              >
+                Open Admin Console
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         <Box sx={{ mt: 3 }}>
           <Button fullWidth variant="outlined" color="error" size="large" onClick={handleSignOut}>

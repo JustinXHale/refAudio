@@ -16,7 +16,7 @@ export function BottomNav() {
 
   const items = useMemo(() => {
     const list: Array<{ to: string; label: string; icon: React.ReactNode }> = [
-      { to: '/', label: 'Home', icon: <HomeOutlinedIcon /> },
+      { to: '/', label: 'Events', icon: <HomeOutlinedIcon /> },
     ]
     if (user) {
       list.push({ to: '/create', label: 'Create', icon: <AddIcon /> })

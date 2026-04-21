@@ -43,7 +43,7 @@ export async function generateToken(
     sub: participantIdentity,
     iss: API_KEY,
     nbf: now,
-    exp: now + 3600,
+    exp: now + 6000,
     jti: `${participantIdentity}-${now}`,
     name: participantName,
     video: {

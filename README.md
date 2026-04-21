@@ -1,4 +1,4 @@
-# refOpenMic
+# RefOpenMic
 
 **Professional-quality referee communication for everyone.**
 

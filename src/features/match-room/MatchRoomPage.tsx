@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
 import { useParams, useSearchParams, useNavigate, Navigate } from 'react-router-dom'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
@@ -27,6 +27,7 @@ import {
   grantAdmin,
   revokeAdmin,
   transferOwnership,
+  endMatch,
 } from '@/services/matches'
 import { useToast } from '@/contexts/ToastContext'
 import {
@@ -47,6 +48,7 @@ import {
   subscribe as demoSubscribe,
 } from '@/services/demo'
 import type { Participant, ParticipantRole } from '@/types'
+import { SESSION_LIMIT_MINUTES } from '@/types'
 
 export function MatchRoomPage() {
   const { matchId } = useParams<{ matchId: string }>()
@@ -56,6 +58,14 @@ export function MatchRoomPage() {
   const { user, isDemo } = useAuth()
   const navigate = useNavigate()
   const { showToast } = useToast()
+
+  // Compute early so initial state for stage is correct without re-render
+  const isRefRole = useMemo(() => role === 'referee' || role === 'creator', [role])
+
+  const [stage, setStage] = useState<'precheck' | 'in-room'>(isRefRole ? 'precheck' : 'in-room')
+  const [micPermission, setMicPermission] = useState<'pending' | 'granted' | 'denied'>('pending')
+  const [micLevel, setMicLevel] = useState(0)
+  const [sessionSecondsLeft, setSessionSecondsLeft] = useState<number | null>(null)
 
   const [participants, setParticipants] = useState<Participant[]>([])
   const [isMuted, setIsMuted] = useState(false)
@@ -69,11 +79,113 @@ export function MatchRoomPage() {
 
   const roomRef = useRef<Room | null>(null)
   const connectingRef = useRef(false)
+  const micStreamRef = useRef<MediaStream | null>(null)
+  const micAnimFrameRef = useRef<number | null>(null)
+  const sessionWarned10Ref = useRef(false)
+  const sessionWarned5Ref = useRef(false)
   /** Keeps LiveKit in sync when dynacast/republish toggles the mic (e.g. first subscriber joins). */
   const isMutedRef = useRef(isMuted)
   useEffect(() => {
     isMutedRef.current = isMuted
   }, [isMuted])
+
+  // Mic pre-check: request permission and show audio level for refs before entering the room
+  useEffect(() => {
+    if (stage !== 'precheck') return
+
+    let cancelled = false
+    let animId: number | null = null
+    let stream: MediaStream | null = null
+    let audioCtx: AudioContext | null = null
+
+    const start = async () => {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+        if (cancelled) { stream.getTracks().forEach((t) => t.stop()); return }
+        micStreamRef.current = stream
+        setMicPermission('granted')
+
+        audioCtx = new AudioContext()
+        const source = audioCtx.createMediaStreamSource(stream)
+        const analyser = audioCtx.createAnalyser()
+        analyser.fftSize = 256
+        source.connect(analyser)
+        const data = new Uint8Array(analyser.frequencyBinCount)
+
+        const tick = () => {
+          analyser.getByteFrequencyData(data)
+          const avg = data.reduce((s, v) => s + v, 0) / data.length
+          setMicLevel(Math.min(100, Math.round((avg / 128) * 100)))
+          animId = requestAnimationFrame(tick)
+          micAnimFrameRef.current = animId
+        }
+        tick()
+      } catch {
+        if (!cancelled) setMicPermission('denied')
+      }
+    }
+
+    void start()
+
+    return () => {
+      cancelled = true
+      if (animId !== null) cancelAnimationFrame(animId)
+      if (stream) stream.getTracks().forEach((t) => t.stop())
+      if (audioCtx) void audioCtx.close()
+      micStreamRef.current = null
+      micAnimFrameRef.current = null
+      setMicLevel(0)
+    }
+  }, [stage])
+
+  // Session timer: counts down from SESSION_LIMIT_MINUTES based on match.startedAt
+  useEffect(() => {
+    if (!match?.startedAt || match.status !== 'live') return
+
+    const startedAtMs = (match.startedAt as { toDate?: () => Date })?.toDate?.()?.getTime() ?? 0
+    if (!startedAtMs) return
+
+    const limitMs = SESSION_LIMIT_MINUTES * 60 * 1000
+
+    const tick = () => {
+      const elapsed = Date.now() - startedAtMs
+      const left = Math.max(0, Math.floor((limitMs - elapsed) / 1000))
+      setSessionSecondsLeft(left)
+
+      const leftMin = Math.ceil(left / 60)
+      if (leftMin <= 10 && !sessionWarned10Ref.current) {
+        sessionWarned10Ref.current = true
+        showToast(`⚠️ 10 minutes remaining in this session`, 'error')
+      }
+      if (leftMin <= 5 && !sessionWarned5Ref.current) {
+        sessionWarned5Ref.current = true
+        showToast(`⚠️ 5 minutes remaining — session ending soon`, 'error')
+      }
+    }
+
+    tick()
+    const id = setInterval(tick, 1000)
+    return () => clearInterval(id)
+  }, [match?.startedAt, match?.status, showToast])
+
+  // Auto-end when session limit expires
+  useEffect(() => {
+    if (sessionSecondsLeft !== 0) return
+    if (!matchId || !user) return
+
+    if (roomRef.current) {
+      disconnectRoom(roomRef.current)
+      roomRef.current = null
+    }
+
+    const isAdmin = match?.adminIds?.includes(user.uid) || match?.creatorId === user.uid
+    if (!isDemo && isAdmin && matchId) {
+      void endMatch(matchId, user.uid).catch(() => {})
+    }
+
+    showToast('Session limit reached (100 min) — event ended', 'error')
+    navigate(`/match/${matchId}`, { replace: true })
+  }, [sessionSecondsLeft, matchId, user, match, isDemo, navigate, showToast])
 
   const isRef = role === 'referee' || role === 'creator'
   const canPublish = isRef
@@ -106,8 +218,9 @@ export function MatchRoomPage() {
     ensureRefParticipant(matchId, user.uid, displayName, participantRole).catch(() => {})
   }, [match, user, matchId, isDemo, isRef])
 
-  // LiveKit connection
+  // LiveKit connection — only start after pre-check stage is complete
   useEffect(() => {
+    if (stage !== 'in-room') return
     if (!match || !user || isDemo || !isLiveKitConfigured) {
       if (isDemo) {
         const timer = setTimeout(() => setConnectionState('connected'), 1500)
@@ -182,7 +295,7 @@ export function MatchRoomPage() {
       }
       connectingRef.current = false
     }
-  }, [match, user, isDemo, canPublish])
+  }, [match, user, isDemo, canPublish, stage])
 
   // When Firestore marks the match ended, all clients navigate out; LiveKit disconnects in cleanup.
   // Follow-up: close the server-side room via LiveKit API or a Cloud Function for immediate teardown.
@@ -252,6 +365,107 @@ export function MatchRoomPage() {
 
   const isAdmin =
     match.adminIds?.includes(user.uid) || match.creatorId === user.uid
+
+  if (stage === 'precheck') {
+    const micOk = micPermission === 'granted'
+    return (
+      <Box
+        sx={{
+          minHeight: '100vh',
+          bgcolor: 'grey.900',
+          color: 'common.white',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          px: 3,
+        }}
+      >
+        <Stack spacing={3} sx={{ maxWidth: 360, width: '100%', textAlign: 'center' }}>
+          <Typography variant="h6" fontWeight={700}>
+            Mic Check
+          </Typography>
+          <Typography variant="body2" color="grey.400">
+            Before entering the room, confirm your microphone is working.
+          </Typography>
+
+          {micPermission === 'pending' && (
+            <Stack alignItems="center" spacing={1.5}>
+              <CircularProgress sx={{ color: 'primary.main' }} />
+              <Typography variant="caption" color="grey.500">
+                Requesting microphone access...
+              </Typography>
+            </Stack>
+          )}
+
+          {micPermission === 'denied' && (
+            <Alert severity="error">
+              Microphone access was denied. Please allow mic access in your browser settings and refresh.
+            </Alert>
+          )}
+
+          {micPermission === 'granted' && (
+            <Stack spacing={2} alignItems="center">
+              <Typography variant="caption" color="success.light">
+                Microphone access granted ✓
+              </Typography>
+              <Box sx={{ width: '100%' }}>
+                <Typography variant="caption" color="grey.500" display="block" sx={{ mb: 0.5 }}>
+                  Audio level — speak to test
+                </Typography>
+                <Box
+                  sx={{
+                    width: '100%',
+                    height: 12,
+                    bgcolor: 'grey.800',
+                    borderRadius: 6,
+                    overflow: 'hidden',
+                  }}
+                >
+                  <Box
+                    sx={{
+                      height: '100%',
+                      width: `${micLevel}%`,
+                      bgcolor: micLevel > 60 ? 'success.main' : micLevel > 20 ? 'primary.main' : 'grey.600',
+                      borderRadius: 6,
+                      transition: 'width 0.08s ease, background-color 0.2s',
+                    }}
+                  />
+                </Box>
+              </Box>
+            </Stack>
+          )}
+
+          <Button
+            variant="contained"
+            size="large"
+            disabled={!micOk}
+            onClick={() => {
+              if (micStreamRef.current) {
+                micStreamRef.current.getTracks().forEach((t) => t.stop())
+                micStreamRef.current = null
+              }
+              if (micAnimFrameRef.current !== null) {
+                cancelAnimationFrame(micAnimFrameRef.current)
+                micAnimFrameRef.current = null
+              }
+              setStage('in-room')
+            }}
+          >
+            Enter Room
+          </Button>
+
+          <Button
+            size="small"
+            sx={{ color: 'grey.500' }}
+            onClick={() => navigate(`/match/${matchId}`, { replace: true })}
+          >
+            Cancel
+          </Button>
+        </Stack>
+      </Box>
+    )
+  }
   const isCreator = match.creatorId === user.uid
   const refs = participants.filter(
     (p) => p.role === 'referee' || p.role === 'creator',
@@ -386,6 +600,17 @@ export function MatchRoomPage() {
         title={match.title}
         rightAction={
           <Stack direction="row" alignItems="center" spacing={1.5}>
+            {sessionSecondsLeft !== null && (
+              <Typography
+                variant="caption"
+                fontWeight={700}
+                sx={{
+                  color: sessionSecondsLeft <= 300 ? 'error.light' : sessionSecondsLeft <= 600 ? 'warning.light' : 'grey.400',
+                }}
+              >
+                {String(Math.floor(sessionSecondsLeft / 60)).padStart(2, '0')}:{String(sessionSecondsLeft % 60).padStart(2, '0')}
+              </Typography>
+            )}
             <Typography
               variant="caption"
               fontWeight={600}

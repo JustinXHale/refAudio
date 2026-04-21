@@ -10,6 +10,7 @@ import { CreateMatchPage } from '@/features/match-creation/CreateMatchPage'
 import { MatchDetailPage } from '@/features/match-detail/MatchDetailPage'
 import { JoinByCodePage } from '@/features/match-detail/JoinByCodePage'
 import { MatchRoomPage } from '@/features/match-room/MatchRoomPage'
+import { AdminConsolePage } from '@/features/admin/AdminConsolePage'
 
 /** Matches `vite.config` `base` (e.g. `/refOpenMic` on GitHub Pages). */
 const routerBasename =
@@ -30,6 +31,7 @@ function App() {
               <Route path="/match/:matchId" element={<MatchDetailPage />} />
               <Route path="/match/:matchId/room" element={<MatchRoomPage />} />
               <Route path="/join" element={<JoinByCodePage />} />
+              <Route path="/admin" element={<AdminConsolePage />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Box>
